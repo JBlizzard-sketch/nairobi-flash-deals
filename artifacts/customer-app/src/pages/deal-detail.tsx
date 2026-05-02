@@ -1,17 +1,18 @@
 import { useState, useEffect } from "react";
 import { useParams, useLocation } from "wouter";
-import { useGetDeal, useCreateBooking, useListVenueRatings } from "@workspace/api-client-react";
+import { useGetDeal, useCreateBooking, useListVenueRatings, useJoinWaitlist, useLeaveWaitlist, useCheckWaitlistStatus, getCheckWaitlistStatusQueryKey } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { MapPin, Clock, Users, Star, ArrowLeft, Plus, Minus, Ticket, CheckCircle2, Share2 } from "lucide-react";
+import { MapPin, Clock, Users, Star, ArrowLeft, Plus, Minus, Ticket, CheckCircle2, Share2, Bell, BellOff } from "lucide-react";
 import { differenceInSeconds } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { useQueryClient } from "@tanstack/react-query";
 
 type BookingResult = {
   confirmationCode: string;
@@ -30,8 +31,12 @@ export default function DealDetail() {
   const { isAuthenticated, user } = useAuth();
 
   const dealId = id ? parseInt(id, 10) : 0;
+  const queryClient = useQueryClient();
   const { data: deal, isLoading, error } = useGetDeal(dealId);
   const createBooking = useCreateBooking();
+  const joinWaitlist = useJoinWaitlist();
+  const leaveWaitlist = useLeaveWaitlist();
+  const { data: waitlistStatus } = useCheckWaitlistStatus(dealId, { query: { enabled: isAuthenticated && dealId > 0 } });
   const venueId = deal?.venueId ?? 0;
   const { data: ratingsData } = useListVenueRatings(venueId, { limit: 5 }, { query: { enabled: !!venueId } });
 
@@ -170,6 +175,30 @@ export default function DealDetail() {
   }
 
   const availableSlots = deal.availableSlots ?? (deal.totalSlots - deal.bookedSlots);
+  const isSoldOut = availableSlots === 0;
+  const onWaitlist = waitlistStatus?.onWaitlist ?? false;
+
+  const handleJoinWaitlist = () => {
+    if (!isAuthenticated) { setLocation("/auth"); return; }
+    joinWaitlist.mutate({ dealId }, {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: getCheckWaitlistStatusQueryKey(dealId) });
+        toast({ title: "You're on the waitlist!", description: "We'll notify you the moment a slot opens." });
+      },
+      onError: (err: Error & { response?: { data?: { message?: string } } }) => {
+        toast({ title: "Could not join", description: err.response?.data?.message ?? err.message, variant: "destructive" });
+      },
+    });
+  };
+
+  const handleLeaveWaitlist = () => {
+    leaveWaitlist.mutate({ dealId }, {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: getCheckWaitlistStatusQueryKey(dealId) });
+        toast({ title: "Removed from waitlist" });
+      },
+    });
+  };
 
   return (
     <div className="pb-24">
@@ -240,6 +269,41 @@ export default function DealDetail() {
               </div>
             </div>
 
+            {isSoldOut && timeLeft > 0 ? (
+              <div className="space-y-3">
+                {onWaitlist ? (
+                  <div className="w-full rounded-xl border border-primary/30 bg-primary/5 px-4 py-3 flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2 text-primary font-medium text-sm">
+                      <Bell className="h-4 w-4" />
+                      You're on the waitlist — we'll notify you!
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-muted-foreground hover:text-destructive shrink-0"
+                      onClick={handleLeaveWaitlist}
+                      disabled={leaveWaitlist.isPending}
+                    >
+                      <BellOff className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ) : (
+                  <Button
+                    className="w-full text-lg py-6"
+                    size="lg"
+                    variant="secondary"
+                    onClick={handleJoinWaitlist}
+                    disabled={joinWaitlist.isPending}
+                  >
+                    <Bell className="h-5 w-5 mr-2" />
+                    {joinWaitlist.isPending ? "Joining..." : "Join Waitlist — Notify Me"}
+                  </Button>
+                )}
+                <p className="text-xs text-center text-muted-foreground">
+                  Sold out · You'll get a push notification if a slot opens
+                </p>
+              </div>
+            ) : (
             <Dialog open={isBookingOpen} onOpenChange={setIsBookingOpen}>
               <DialogTrigger asChild>
                 <Button
@@ -247,7 +311,7 @@ export default function DealDetail() {
                   size="lg"
                   disabled={availableSlots === 0 || timeLeft <= 0}
                 >
-                  {availableSlots === 0 ? "Sold Out" : timeLeft <= 0 ? "Expired" : "Book Now"}
+                  {timeLeft <= 0 ? "Expired" : "Book Now"}
                 </Button>
               </DialogTrigger>
               <DialogContent className="sm:max-w-md">

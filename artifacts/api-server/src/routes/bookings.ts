@@ -1,7 +1,8 @@
 import { Router, type IRouter } from "express";
 import { db } from "@workspace/db";
-import { bookingsTable, dealsTable, venuesTable, usersTable } from "@workspace/db/schema";
-import { eq, sql, and, ne } from "drizzle-orm";
+import { bookingsTable, dealsTable, venuesTable, usersTable, waitlistTable } from "@workspace/db/schema";
+import { eq, sql, and, ne, asc } from "drizzle-orm";
+import { sendPushNotification } from "../lib/fcm";
 import { z } from "zod";
 import { randomBytes } from "crypto";
 import { isDarajaConfigured, initiateSTKPush } from "../lib/daraja";
@@ -225,6 +226,47 @@ router.post("/bookings/:id/cancel", async (req, res) => {
     res.status(404).json({ message: "Booking not found" });
     return;
   }
+
+  // Release slots on the deal and restore status
+  const [deal] = await db
+    .update(dealsTable)
+    .set({
+      bookedSlots: sql`GREATEST(0, ${dealsTable.bookedSlots} - ${booking.slots})`,
+      status: sql`
+        CASE
+          WHEN (${dealsTable.bookedSlots} - ${booking.slots})::float / ${dealsTable.totalSlots} >= 0.7
+            THEN 'filling_fast'::deal_status
+          ELSE 'live'::deal_status
+        END`,
+      updatedAt: new Date(),
+    })
+    .where(eq(dealsTable.id, booking.dealId))
+    .returning();
+
+  // Notify next waitlist user if slots just opened
+  if (deal) {
+    const [nextWaiting] = await db
+      .select({ entry: waitlistTable, user: usersTable })
+      .from(waitlistTable)
+      .leftJoin(usersTable, eq(waitlistTable.userId, usersTable.id))
+      .where(and(eq(waitlistTable.dealId, booking.dealId), eq(waitlistTable.status, "waiting")))
+      .orderBy(asc(waitlistTable.position))
+      .limit(1);
+
+    if (nextWaiting?.user?.pushToken) {
+      await sendPushNotification({
+        token: nextWaiting.user.pushToken,
+        title: "🎉 A slot just opened!",
+        body: `A cancellation freed a slot for "${deal.title}" — grab it before it's gone!`,
+        data: { dealId: String(deal.id), type: "waitlist_slot_available" },
+      });
+      await db
+        .update(waitlistTable)
+        .set({ status: "notified", notifiedAt: new Date(), updatedAt: new Date() })
+        .where(eq(waitlistTable.id, nextWaiting.entry.id));
+    }
+  }
+
   res.json({ ...booking, deal: null, venue: null });
 });
 

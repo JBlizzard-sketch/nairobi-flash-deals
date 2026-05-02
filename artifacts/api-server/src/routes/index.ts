@@ -10,6 +10,7 @@ import whatsappRouter from "./whatsapp";
 import notificationsRouter from "./notifications";
 import adminRouter from "./admin";
 import referralsRouter from "./referrals";
+import waitlistRouter from "./waitlist";
 
 const router: IRouter = Router();
 
@@ -24,5 +25,6 @@ router.use(whatsappRouter);
 router.use(notificationsRouter);
 router.use(adminRouter);
 router.use(referralsRouter);
+router.use(waitlistRouter);
 
 export default router;

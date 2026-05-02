@@ -944,6 +944,108 @@ paths:
         "404":
           $ref: "#/components/responses/NotFound"
 
+  # ── Waitlist ───────────────────────────────────────────────────
+  /waitlist/{dealId}:
+    post:
+      operationId: joinWaitlist
+      tags: [waitlist]
+      summary: Join waitlist for a sold-out deal
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: dealId
+          in: path
+          required: true
+          schema:
+            type: number
+      responses:
+        "201":
+          description: Waitlist entry created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WaitlistEntry"
+        "409":
+          description: Already on waitlist or slots available
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: leaveWaitlist
+      tags: [waitlist]
+      summary: Leave waitlist for a deal
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: dealId
+          in: path
+          required: true
+          schema:
+            type: number
+      responses:
+        "200":
+          description: Removed from waitlist
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WaitlistEntry"
+
+  /waitlist/my:
+    get:
+      operationId: getMyWaitlist
+      tags: [waitlist]
+      summary: My active waitlist entries
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Waitlist entries with deal info
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WaitlistMyResponse"
+
+  /waitlist/deal/{dealId}/count:
+    get:
+      operationId: getWaitlistCount
+      tags: [waitlist]
+      summary: Number of users waiting for a deal
+      parameters:
+        - name: dealId
+          in: path
+          required: true
+          schema:
+            type: number
+      responses:
+        "200":
+          description: Waitlist count
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WaitlistCountResponse"
+
+  /waitlist/deal/{dealId}/me:
+    get:
+      operationId: checkWaitlistStatus
+      tags: [waitlist]
+      summary: Check if authenticated user is on waitlist for a deal
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: dealId
+          in: path
+          required: true
+          schema:
+            type: number
+      responses:
+        "200":
+          description: Waitlist status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WaitlistStatusResponse"
+
   # ── Referrals ─────────────────────────────────────────────────
   /referrals/my:
     get:
@@ -1867,6 +1969,56 @@ components:
         pagination:
           $ref: "#/components/schemas/Pagination"
       required: [data, pagination]
+
+    WaitlistEntry:
+      type: object
+      properties:
+        id: { type: number }
+        dealId: { type: number }
+        userId: { type: number }
+        position: { type: number }
+        status: { type: string }
+        notifiedAt: { type: string, nullable: true }
+        createdAt: { type: string }
+        updatedAt: { type: string }
+      required: [id, dealId, userId, position, status, createdAt, updatedAt]
+
+    WaitlistMyResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            type: object
+            properties:
+              id: { type: number }
+              dealId: { type: number }
+              position: { type: number }
+              status: { type: string }
+              createdAt: { type: string }
+              deal:
+                $ref: "#/components/schemas/Deal"
+              venue:
+                $ref: "#/components/schemas/Venue"
+            required: [id, dealId, position, status, createdAt]
+        count: { type: number }
+      required: [data, count]
+
+    WaitlistCountResponse:
+      type: object
+      properties:
+        dealId: { type: number }
+        count: { type: number }
+      required: [dealId, count]
+
+    WaitlistStatusResponse:
+      type: object
+      properties:
+        onWaitlist: { type: boolean }
+        entry:
+          nullable: true
+          $ref: "#/components/schemas/WaitlistEntry"
+      required: [onWaitlist]
 
     ReferralUserEntry:
       type: object

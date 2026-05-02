@@ -29,6 +29,7 @@ import type {
   Deal,
   DealListResponse,
   Error,
+  ErrorResponse,
   GetNotificationLogParams,
   HealthStatus,
   InitiatePaymentRequest,
@@ -74,6 +75,10 @@ import type {
   VenueListResponse,
   VerifyOtpRequest,
   VerifyWhatsAppWebhookParams,
+  WaitlistCountResponse,
+  WaitlistEntry,
+  WaitlistMyResponse,
+  WaitlistStatusResponse,
   WhatsAppTestRequest,
   WhatsAppTestResponse,
   WhatsAppWebhookPayload,
@@ -3827,6 +3832,429 @@ export const useRespondToRating = <
 > => {
   return useMutation(getRespondToRatingMutationOptions(options));
 };
+
+/**
+ * @summary Join waitlist for a sold-out deal
+ */
+export const getJoinWaitlistUrl = (dealId: number) => {
+  return `/api/waitlist/${dealId}`;
+};
+
+export const joinWaitlist = async (
+  dealId: number,
+  options?: RequestInit,
+): Promise<WaitlistEntry> => {
+  return customFetch<WaitlistEntry>(getJoinWaitlistUrl(dealId), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getJoinWaitlistMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof joinWaitlist>>,
+    TError,
+    { dealId: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof joinWaitlist>>,
+  TError,
+  { dealId: number },
+  TContext
+> => {
+  const mutationKey = ["joinWaitlist"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof joinWaitlist>>,
+    { dealId: number }
+  > = (props) => {
+    const { dealId } = props ?? {};
+
+    return joinWaitlist(dealId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type JoinWaitlistMutationResult = NonNullable<
+  Awaited<ReturnType<typeof joinWaitlist>>
+>;
+
+export type JoinWaitlistMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Join waitlist for a sold-out deal
+ */
+export const useJoinWaitlist = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof joinWaitlist>>,
+    TError,
+    { dealId: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof joinWaitlist>>,
+  TError,
+  { dealId: number },
+  TContext
+> => {
+  return useMutation(getJoinWaitlistMutationOptions(options));
+};
+
+/**
+ * @summary Leave waitlist for a deal
+ */
+export const getLeaveWaitlistUrl = (dealId: number) => {
+  return `/api/waitlist/${dealId}`;
+};
+
+export const leaveWaitlist = async (
+  dealId: number,
+  options?: RequestInit,
+): Promise<WaitlistEntry> => {
+  return customFetch<WaitlistEntry>(getLeaveWaitlistUrl(dealId), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getLeaveWaitlistMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof leaveWaitlist>>,
+    TError,
+    { dealId: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof leaveWaitlist>>,
+  TError,
+  { dealId: number },
+  TContext
+> => {
+  const mutationKey = ["leaveWaitlist"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof leaveWaitlist>>,
+    { dealId: number }
+  > = (props) => {
+    const { dealId } = props ?? {};
+
+    return leaveWaitlist(dealId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type LeaveWaitlistMutationResult = NonNullable<
+  Awaited<ReturnType<typeof leaveWaitlist>>
+>;
+
+export type LeaveWaitlistMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Leave waitlist for a deal
+ */
+export const useLeaveWaitlist = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof leaveWaitlist>>,
+    TError,
+    { dealId: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof leaveWaitlist>>,
+  TError,
+  { dealId: number },
+  TContext
+> => {
+  return useMutation(getLeaveWaitlistMutationOptions(options));
+};
+
+/**
+ * @summary My active waitlist entries
+ */
+export const getGetMyWaitlistUrl = () => {
+  return `/api/waitlist/my`;
+};
+
+export const getMyWaitlist = async (
+  options?: RequestInit,
+): Promise<WaitlistMyResponse> => {
+  return customFetch<WaitlistMyResponse>(getGetMyWaitlistUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetMyWaitlistQueryKey = () => {
+  return [`/api/waitlist/my`] as const;
+};
+
+export const getGetMyWaitlistQueryOptions = <
+  TData = Awaited<ReturnType<typeof getMyWaitlist>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getMyWaitlist>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetMyWaitlistQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getMyWaitlist>>> = ({
+    signal,
+  }) => getMyWaitlist({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getMyWaitlist>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetMyWaitlistQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getMyWaitlist>>
+>;
+export type GetMyWaitlistQueryError = ErrorType<unknown>;
+
+/**
+ * @summary My active waitlist entries
+ */
+
+export function useGetMyWaitlist<
+  TData = Awaited<ReturnType<typeof getMyWaitlist>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getMyWaitlist>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetMyWaitlistQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Number of users waiting for a deal
+ */
+export const getGetWaitlistCountUrl = (dealId: number) => {
+  return `/api/waitlist/deal/${dealId}/count`;
+};
+
+export const getWaitlistCount = async (
+  dealId: number,
+  options?: RequestInit,
+): Promise<WaitlistCountResponse> => {
+  return customFetch<WaitlistCountResponse>(getGetWaitlistCountUrl(dealId), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetWaitlistCountQueryKey = (dealId: number) => {
+  return [`/api/waitlist/deal/${dealId}/count`] as const;
+};
+
+export const getGetWaitlistCountQueryOptions = <
+  TData = Awaited<ReturnType<typeof getWaitlistCount>>,
+  TError = ErrorType<unknown>,
+>(
+  dealId: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getWaitlistCount>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetWaitlistCountQueryKey(dealId);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getWaitlistCount>>
+  > = ({ signal }) => getWaitlistCount(dealId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!dealId,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getWaitlistCount>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetWaitlistCountQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getWaitlistCount>>
+>;
+export type GetWaitlistCountQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Number of users waiting for a deal
+ */
+
+export function useGetWaitlistCount<
+  TData = Awaited<ReturnType<typeof getWaitlistCount>>,
+  TError = ErrorType<unknown>,
+>(
+  dealId: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getWaitlistCount>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetWaitlistCountQueryOptions(dealId, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Check if authenticated user is on waitlist for a deal
+ */
+export const getCheckWaitlistStatusUrl = (dealId: number) => {
+  return `/api/waitlist/deal/${dealId}/me`;
+};
+
+export const checkWaitlistStatus = async (
+  dealId: number,
+  options?: RequestInit,
+): Promise<WaitlistStatusResponse> => {
+  return customFetch<WaitlistStatusResponse>(
+    getCheckWaitlistStatusUrl(dealId),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getCheckWaitlistStatusQueryKey = (dealId: number) => {
+  return [`/api/waitlist/deal/${dealId}/me`] as const;
+};
+
+export const getCheckWaitlistStatusQueryOptions = <
+  TData = Awaited<ReturnType<typeof checkWaitlistStatus>>,
+  TError = ErrorType<unknown>,
+>(
+  dealId: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof checkWaitlistStatus>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getCheckWaitlistStatusQueryKey(dealId);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof checkWaitlistStatus>>
+  > = ({ signal }) =>
+    checkWaitlistStatus(dealId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!dealId,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof checkWaitlistStatus>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type CheckWaitlistStatusQueryResult = NonNullable<
+  Awaited<ReturnType<typeof checkWaitlistStatus>>
+>;
+export type CheckWaitlistStatusQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Check if authenticated user is on waitlist for a deal
+ */
+
+export function useCheckWaitlistStatus<
+  TData = Awaited<ReturnType<typeof checkWaitlistStatus>>,
+  TError = ErrorType<unknown>,
+>(
+  dealId: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof checkWaitlistStatus>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getCheckWaitlistStatusQueryOptions(dealId, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
 
 /**
  * @summary My referral code and stats

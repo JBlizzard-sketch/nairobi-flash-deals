@@ -2244,6 +2244,207 @@ export const RespondToRatingResponse = zod.object({
 });
 
 /**
+ * @summary Join waitlist for a sold-out deal
+ */
+export const JoinWaitlistParams = zod.object({
+  dealId: zod.coerce.number(),
+});
+
+/**
+ * @summary Leave waitlist for a deal
+ */
+export const LeaveWaitlistParams = zod.object({
+  dealId: zod.coerce.number(),
+});
+
+export const LeaveWaitlistResponse = zod.object({
+  id: zod.number(),
+  dealId: zod.number(),
+  userId: zod.number(),
+  position: zod.number(),
+  status: zod.string(),
+  notifiedAt: zod.string().nullish(),
+  createdAt: zod.string(),
+  updatedAt: zod.string(),
+});
+
+/**
+ * @summary My active waitlist entries
+ */
+export const GetMyWaitlistResponse = zod.object({
+  data: zod.array(
+    zod.object({
+      id: zod.number(),
+      dealId: zod.number(),
+      position: zod.number(),
+      status: zod.string(),
+      createdAt: zod.string(),
+      deal: zod
+        .object({
+          id: zod.number(),
+          venueId: zod.number(),
+          title: zod.string(),
+          description: zod.string(),
+          category: zod.enum([
+            "lunch",
+            "dinner",
+            "brunch",
+            "treatment",
+            "class",
+            "experience",
+            "drinks",
+            "tasting",
+          ]),
+          discountPercent: zod.number(),
+          originalPrice: zod.string(),
+          dealPrice: zod.string(),
+          totalSlots: zod.number(),
+          bookedSlots: zod.number(),
+          availableSlots: zod.number(),
+          status: zod.enum([
+            "draft",
+            "live",
+            "filling_fast",
+            "sold_out",
+            "expired",
+            "cancelled",
+          ]),
+          startsAt: zod.coerce.date(),
+          endsAt: zod.coerce.date(),
+          imageUrl: zod.string().nullish(),
+          isStanding: zod.boolean(),
+          viewCount: zod.number(),
+          venue: zod
+            .object({
+              id: zod.number(),
+              name: zod.string(),
+              slug: zod.string(),
+              category: zod.enum([
+                "restaurant",
+                "spa",
+                "bar",
+                "fitness",
+                "experience",
+              ]),
+              neighborhood: zod.enum([
+                "westlands",
+                "kilimani",
+                "cbd",
+                "karen",
+                "langata",
+                "lavington",
+                "kileleshwa",
+                "runda",
+                "muthaiga",
+                "gigiri",
+                "upper_hill",
+                "other",
+              ]),
+              address: zod.string(),
+              latitude: zod.string().nullish(),
+              longitude: zod.string().nullish(),
+              description: zod.string(),
+              coverImage: zod.string().nullish(),
+              images: zod.array(zod.string()),
+              commissionRate: zod.string(),
+              status: zod.enum(["pending_approval", "approved", "suspended"]),
+              averageRating: zod.string().nullish(),
+              totalRatings: zod.number(),
+              totalBookings: zod.number(),
+              fillRate: zod.string().nullish(),
+              tags: zod.array(zod.string()),
+              createdAt: zod.coerce.date(),
+              updatedAt: zod.coerce.date(),
+            })
+            .nullish(),
+          createdAt: zod.coerce.date(),
+          updatedAt: zod.coerce.date(),
+        })
+        .optional(),
+      venue: zod
+        .object({
+          id: zod.number(),
+          name: zod.string(),
+          slug: zod.string(),
+          category: zod.enum([
+            "restaurant",
+            "spa",
+            "bar",
+            "fitness",
+            "experience",
+          ]),
+          neighborhood: zod.enum([
+            "westlands",
+            "kilimani",
+            "cbd",
+            "karen",
+            "langata",
+            "lavington",
+            "kileleshwa",
+            "runda",
+            "muthaiga",
+            "gigiri",
+            "upper_hill",
+            "other",
+          ]),
+          address: zod.string(),
+          latitude: zod.string().nullish(),
+          longitude: zod.string().nullish(),
+          description: zod.string(),
+          coverImage: zod.string().nullish(),
+          images: zod.array(zod.string()),
+          commissionRate: zod.string(),
+          status: zod.enum(["pending_approval", "approved", "suspended"]),
+          averageRating: zod.string().nullish(),
+          totalRatings: zod.number(),
+          totalBookings: zod.number(),
+          fillRate: zod.string().nullish(),
+          tags: zod.array(zod.string()),
+          createdAt: zod.coerce.date(),
+          updatedAt: zod.coerce.date(),
+        })
+        .optional(),
+    }),
+  ),
+  count: zod.number(),
+});
+
+/**
+ * @summary Number of users waiting for a deal
+ */
+export const GetWaitlistCountParams = zod.object({
+  dealId: zod.coerce.number(),
+});
+
+export const GetWaitlistCountResponse = zod.object({
+  dealId: zod.number(),
+  count: zod.number(),
+});
+
+/**
+ * @summary Check if authenticated user is on waitlist for a deal
+ */
+export const CheckWaitlistStatusParams = zod.object({
+  dealId: zod.coerce.number(),
+});
+
+export const CheckWaitlistStatusResponse = zod.object({
+  onWaitlist: zod.boolean(),
+  entry: zod
+    .object({
+      id: zod.number(),
+      dealId: zod.number(),
+      userId: zod.number(),
+      position: zod.number(),
+      status: zod.string(),
+      notifiedAt: zod.string().nullish(),
+      createdAt: zod.string(),
+      updatedAt: zod.string(),
+    })
+    .nullish(),
+});
+
+/**
  * @summary My referral code and stats
  */
 export const GetMyReferralStatsResponse = zod.object({

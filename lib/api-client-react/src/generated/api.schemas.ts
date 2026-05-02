@@ -473,6 +473,42 @@ export interface BookingListResponse {
   pagination: Pagination;
 }
 
+export interface WaitlistEntry {
+  id: number;
+  dealId: number;
+  userId: number;
+  position: number;
+  status: string;
+  notifiedAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type WaitlistMyResponseDataItem = {
+  id: number;
+  dealId: number;
+  position: number;
+  status: string;
+  createdAt: string;
+  deal?: Deal;
+  venue?: Venue;
+};
+
+export interface WaitlistMyResponse {
+  data: WaitlistMyResponseDataItem[];
+  count: number;
+}
+
+export interface WaitlistCountResponse {
+  dealId: number;
+  count: number;
+}
+
+export interface WaitlistStatusResponse {
+  onWaitlist: boolean;
+  entry?: WaitlistEntry | null;
+}
+
 export interface ReferralUserEntry {
   name: string;
   joinedAt: string;
