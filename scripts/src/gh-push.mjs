@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 /**
- * gh-push.mjs — Push workspace to GitHub via Git Tree API (single commit)
+ * gh-push.mjs — Push workspace to GitHub via Git Contents + Tree API
+ * Handles empty repos by bootstrapping with a single file first.
  * Requires GITHUB_TOKEN env var.
- * Usage: node scripts/src/gh-push.mjs
+ * Usage: node scripts/src/gh-push.mjs [commit message]
  */
 
 import fs from "fs";
@@ -19,6 +20,10 @@ if (!TOKEN) {
   process.exit(1);
 }
 
+const COMMIT_MSG =
+  process.argv[2] ||
+  "feat: initial platform scaffold — Nairobi Flash Deals\n\nFull monorepo scaffold including:\n- Express 5 API server (TypeScript, Express 5, Drizzle ORM)\n- OpenAPI contract-first codegen (Orval)\n- Zod v4 validation schemas\n- pnpm workspace monorepo structure\n- Mockup sandbox (Vite + React + shadcn/ui)\n- README, LICENSE, automated GitHub push script\n- 20-phase development roadmap";
+
 const HEADERS = {
   Authorization: `token ${TOKEN}`,
   Accept: "application/vnd.github.v3+json",
@@ -26,7 +31,6 @@ const HEADERS = {
   "User-Agent": "nairobi-flash-deals-push-script",
 };
 
-// Files to exclude
 const EXCLUDE_PATTERNS = [
   /\/\.git\//,
   /\/node_modules\//,
@@ -39,6 +43,8 @@ const EXCLUDE_PATTERNS = [
   /\.map$/,
   /\.tsbuildinfo$/,
 ];
+
+const EXECUTABLE_FILES = new Set(["scripts/github-push.sh", "scripts/src/gh-push.mjs"]);
 
 function shouldExclude(filePath) {
   return EXCLUDE_PATTERNS.some((p) => p.test(filePath));
@@ -57,20 +63,53 @@ function walkDir(dir, fileList = []) {
   return fileList;
 }
 
-async function ghFetch(endpoint, options = {}) {
+async function ghFetch(endpoint, options = {}, expectStatuses = []) {
   const url = `https://api.github.com${endpoint}`;
   const res = await fetch(url, { ...options, headers: HEADERS });
   const data = await res.json();
-  if (!res.ok) {
-    throw new Error(`GitHub API ${res.status} on ${endpoint}: ${JSON.stringify(data)}`);
+  if (!res.ok && !expectStatuses.includes(res.status)) {
+    throw new Error(`GitHub API ${res.status} on ${endpoint}: ${JSON.stringify(data).slice(0, 300)}`);
   }
-  return data;
+  return { status: res.status, data };
 }
 
-async function createBlob(content, encoding = "base64") {
-  const data = await ghFetch(`/repos/${OWNER}/${REPO}/git/blobs`, {
+/** Bootstrap an empty repo by uploading README.md via Contents API */
+async function bootstrapEmptyRepo() {
+  console.log("Bootstrapping empty repo with initial README commit...");
+  const content = fs.readFileSync(path.join(BASE, "README.md")).toString("base64");
+  const { data } = await ghFetch(`/repos/${OWNER}/${REPO}/contents/README.md`, {
+    method: "PUT",
+    body: JSON.stringify({
+      message: "chore: initialize repository",
+      content,
+      branch: BRANCH,
+    }),
+  });
+  return data.commit.sha;
+}
+
+/** Get current HEAD sha for the branch (returns null if empty or not found) */
+async function getHeadSha() {
+  const { status, data } = await ghFetch(
+    `/repos/${OWNER}/${REPO}/git/ref/heads/${BRANCH}`,
+    {},
+    [404, 409]
+  );
+  if (status === 404 || status === 409) return null;
+  return data.object.sha;
+}
+
+/** Get the tree sha from a commit sha */
+async function getCommitTreeSha(commitSha) {
+  const { data } = await ghFetch(`/repos/${OWNER}/${REPO}/git/commits/${commitSha}`);
+  return data.tree.sha;
+}
+
+/** Create a blob and return its sha */
+async function createBlob(content) {
+  const { data } = await ghFetch(`/repos/${OWNER}/${REPO}/git/blobs`, {
     method: "POST",
-    body: JSON.stringify({ content, encoding }),
+    body: JSON.stringify({ content, encoding: "base64" }),
   });
   return data.sha;
 }
@@ -80,26 +119,38 @@ async function main() {
   const files = walkDir(BASE);
   console.log(`Found ${files.length} files to push`);
 
-  // Create blobs in batches of 10 for speed
+  // Step 1: Check if repo has any commits — 409 means truly empty
+  let headSha = await getHeadSha();
+  if (!headSha) {
+    // Bootstrap via Contents API (works even on empty repos)
+    headSha = await bootstrapEmptyRepo();
+    console.log(`✓ Bootstrapped repo, HEAD: ${headSha.slice(0, 7)}`);
+    // Small delay to let GitHub register the new commit
+    await new Promise((r) => setTimeout(r, 2000));
+  }
+
+  // Step 2: Get base tree sha
+  const baseTreeSha = await getCommitTreeSha(headSha);
+
+  // Step 3: Create blobs for all files in parallel batches
   const treeEntries = [];
-  const BATCH = 10;
+  const BATCH = 8;
 
   for (let i = 0; i < files.length; i += BATCH) {
     const batch = files.slice(i, i + BATCH);
     const results = await Promise.all(
       batch.map(async (absPath) => {
         const relPath = path.relative(BASE, absPath);
-        let content, encoding;
         try {
           const buf = fs.readFileSync(absPath);
-          // Try to detect binary
-          content = buf.toString("base64");
-          encoding = "base64";
-        } catch {
+          const content = buf.toString("base64");
+          const sha = await createBlob(content);
+          const mode = EXECUTABLE_FILES.has(relPath) ? "100755" : "100644";
+          return { path: relPath, mode, type: "blob", sha };
+        } catch (err) {
+          console.warn(`  ⚠ Skipped ${relPath}: ${err.message}`);
           return null;
         }
-        const sha = await createBlob(content, encoding);
-        return { path: relPath, mode: "100644", type: "blob", sha };
       })
     );
     for (const entry of results) {
@@ -109,44 +160,44 @@ async function main() {
       }
     }
   }
+  console.log("");
 
-  // Make github-push.sh executable
-  const pushScriptEntry = treeEntries.find((e) => e.path === "scripts/github-push.sh");
-  if (pushScriptEntry) {
-    pushScriptEntry.mode = "100755";
-  }
-
-  console.log(`\nCreating tree with ${treeEntries.length} entries...`);
-  const tree = await ghFetch(`/repos/${OWNER}/${REPO}/git/trees`, {
+  // Step 4: Create tree on top of base tree
+  console.log(`Creating tree with ${treeEntries.length} entries...`);
+  const { data: tree } = await ghFetch(`/repos/${OWNER}/${REPO}/git/trees`, {
     method: "POST",
-    body: JSON.stringify({ tree: treeEntries }),
+    body: JSON.stringify({ base_tree: baseTreeSha, tree: treeEntries }),
   });
 
-  console.log("Creating initial commit...");
-  const commit = await ghFetch(`/repos/${OWNER}/${REPO}/git/commits`, {
+  // Step 5: Create commit
+  console.log("Creating commit...");
+  const { data: commit } = await ghFetch(`/repos/${OWNER}/${REPO}/git/commits`, {
     method: "POST",
     body: JSON.stringify({
-      message: "feat: initial platform scaffold — Nairobi Flash Deals\n\nFull monorepo scaffold including:\n- Express 5 API server with TypeScript + Drizzle ORM\n- OpenAPI contract-first codegen (Orval)\n- Zod v4 validation schemas\n- pnpm workspace structure\n- Mockup sandbox (Vite + React)\n- README, LICENSE, automated push script",
+      message: COMMIT_MSG,
       tree: tree.sha,
-      parents: [], // empty repo — no parent
+      parents: [headSha],
+      author: {
+        name: "Nairobi Flash Deals Bot",
+        email: "bot@nairobi-flash-deals.dev",
+        date: new Date().toISOString(),
+      },
     }),
   });
 
-  console.log("Creating main branch ref...");
-  await ghFetch(`/repos/${OWNER}/${REPO}/git/refs`, {
-    method: "POST",
-    body: JSON.stringify({
-      ref: `refs/heads/${BRANCH}`,
-      sha: commit.sha,
-    }),
+  // Step 6: Update branch ref
+  console.log("Updating branch ref...");
+  await ghFetch(`/repos/${OWNER}/${REPO}/git/refs/heads/${BRANCH}`, {
+    method: "PATCH",
+    body: JSON.stringify({ sha: commit.sha, force: true }),
   });
 
-  console.log(`\n✓ Successfully pushed ${treeEntries.length} files`);
-  console.log(`✓ Commit: ${commit.sha}`);
-  console.log(`✓ Repo: https://github.com/${OWNER}/${REPO}`);
+  console.log(`\n✓ Pushed ${treeEntries.length} files`);
+  console.log(`✓ Commit: ${commit.sha.slice(0, 7)} — ${COMMIT_MSG.split("\n")[0]}`);
+  console.log(`✓ Repo:   https://github.com/${OWNER}/${REPO}`);
 }
 
 main().catch((err) => {
-  console.error("Push failed:", err.message);
+  console.error("\nPush failed:", err.message);
   process.exit(1);
 });
