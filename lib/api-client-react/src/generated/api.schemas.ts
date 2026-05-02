@@ -509,6 +509,9 @@ export type ListDealsParams = {
   neighborhood?: VenueNeighborhood;
   venueId?: number;
   status?: DealStatus;
+  search?: string;
+  minPrice?: number;
+  maxPrice?: number;
   limit?: number;
   offset?: number;
 };

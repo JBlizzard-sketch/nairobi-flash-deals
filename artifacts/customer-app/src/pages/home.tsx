@@ -1,12 +1,14 @@
-import { useState } from "react";
+import { useState, useDeferredValue } from "react";
 import { useListDeals } from "@workspace/api-client-react";
 import { DealCard } from "@/components/deal-card";
-import { DealCategory } from "@workspace/api-client-react";
+import { DealCategory, VenueNeighborhood } from "@workspace/api-client-react";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, Search, X } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
 
 const CATEGORIES = [
   { id: "all", label: "All Deals" },
@@ -16,41 +18,169 @@ const CATEGORIES = [
   { id: "drinks", label: "Drinks" },
   { id: "treatment", label: "Spa & Beauty" },
   { id: "class", label: "Fitness" },
+  { id: "experience", label: "Experience" },
+  { id: "tasting", label: "Tasting" },
+];
+
+const NEIGHBORHOODS = [
+  { id: "all", label: "All Areas" },
+  { id: "westlands", label: "Westlands" },
+  { id: "kilimani", label: "Kilimani" },
+  { id: "cbd", label: "CBD" },
+  { id: "karen", label: "Karen" },
+  { id: "langata", label: "Langata" },
+  { id: "lavington", label: "Lavington" },
+  { id: "kileleshwa", label: "Kileleshwa" },
+  { id: "gigiri", label: "Gigiri" },
+  { id: "upper_hill", label: "Upper Hill" },
+];
+
+const PRICE_RANGES = [
+  { id: "any", label: "Any Price", minPrice: undefined, maxPrice: undefined },
+  { id: "under2k", label: "Under 2K", minPrice: undefined, maxPrice: 2000 },
+  { id: "2k5k", label: "2K – 5K", minPrice: 2000, maxPrice: 5000 },
+  { id: "over5k", label: "5K+", minPrice: 5000, maxPrice: undefined },
 ];
 
 export default function Home() {
+  const [searchInput, setSearchInput] = useState("");
   const [activeCategory, setActiveCategory] = useState<string>("all");
-  
-  const { data, isLoading, error } = useListDeals({ 
-    category: activeCategory === "all" ? undefined : activeCategory as DealCategory,
+  const [activeNeighborhood, setActiveNeighborhood] = useState<string>("all");
+  const [activePriceRange, setActivePriceRange] = useState<string>("any");
+
+  const deferredSearch = useDeferredValue(searchInput);
+  const priceRange = PRICE_RANGES.find((p) => p.id === activePriceRange) ?? PRICE_RANGES[0];
+
+  const activeFilterCount = [
+    activeCategory !== "all",
+    activeNeighborhood !== "all",
+    activePriceRange !== "any",
+    deferredSearch.length > 0,
+  ].filter(Boolean).length;
+
+  const { data, isLoading, error } = useListDeals({
+    search: deferredSearch || undefined,
+    category: activeCategory === "all" ? undefined : (activeCategory as DealCategory),
+    neighborhood:
+      activeNeighborhood === "all" ? undefined : (activeNeighborhood as VenueNeighborhood),
+    minPrice: priceRange.minPrice,
+    maxPrice: priceRange.maxPrice,
     status: "live",
-    limit: 20 
+    limit: 20,
   });
+
+  function clearAllFilters() {
+    setSearchInput("");
+    setActiveCategory("all");
+    setActiveNeighborhood("all");
+    setActivePriceRange("any");
+  }
 
   return (
     <div className="flex flex-col min-h-screen pb-20 md:pb-0">
-      <div className="bg-primary/5 border-b sticky top-14 z-40">
-        <ScrollArea className="w-full whitespace-nowrap">
-          <div className="flex w-max space-x-2 p-4">
-            {CATEGORIES.map((category) => (
-              <Badge
-                key={category.id}
-                variant={activeCategory === category.id ? "default" : "outline"}
-                className="cursor-pointer text-sm py-1.5 px-4 rounded-full transition-all active-elevate"
-                onClick={() => setActiveCategory(category.id)}
+      <div className="bg-background/95 backdrop-blur border-b sticky top-14 z-40 space-y-0">
+        <div className="container py-3">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              placeholder="Search deals, venues…"
+              className="pl-9 pr-9 rounded-full bg-muted/60 border-0 focus-visible:ring-1"
+            />
+            {searchInput && (
+              <button
+                onClick={() => setSearchInput("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
               >
-                {category.label}
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+        </div>
+
+        <ScrollArea className="w-full whitespace-nowrap border-t border-border/40">
+          <div className="flex w-max space-x-2 px-4 py-2.5">
+            {CATEGORIES.map((cat) => (
+              <Badge
+                key={cat.id}
+                variant={activeCategory === cat.id ? "default" : "outline"}
+                className="cursor-pointer text-sm py-1.5 px-4 rounded-full transition-all"
+                onClick={() => setActiveCategory(cat.id)}
+              >
+                {cat.label}
               </Badge>
             ))}
           </div>
           <ScrollBar orientation="horizontal" className="invisible" />
         </ScrollArea>
+
+        <ScrollArea className="w-full whitespace-nowrap border-t border-border/40">
+          <div className="flex w-max space-x-2 px-4 py-2.5 items-center">
+            <span className="text-xs text-muted-foreground font-medium mr-1 shrink-0">Area</span>
+            {NEIGHBORHOODS.map((n) => (
+              <Badge
+                key={n.id}
+                variant={activeNeighborhood === n.id ? "secondary" : "outline"}
+                className={`cursor-pointer text-xs py-1 px-3 rounded-full transition-all ${
+                  activeNeighborhood === n.id ? "bg-primary/15 text-primary border-primary/30" : ""
+                }`}
+                onClick={() => setActiveNeighborhood(n.id)}
+              >
+                {n.label}
+              </Badge>
+            ))}
+          </div>
+          <ScrollBar orientation="horizontal" className="invisible" />
+        </ScrollArea>
+
+        <ScrollArea className="w-full whitespace-nowrap border-t border-border/40">
+          <div className="flex w-max space-x-2 px-4 py-2.5 items-center">
+            <span className="text-xs text-muted-foreground font-medium mr-1 shrink-0">Price</span>
+            {PRICE_RANGES.map((p) => (
+              <Badge
+                key={p.id}
+                variant={activePriceRange === p.id ? "secondary" : "outline"}
+                className={`cursor-pointer text-xs py-1 px-3 rounded-full transition-all ${
+                  activePriceRange === p.id ? "bg-primary/15 text-primary border-primary/30" : ""
+                }`}
+                onClick={() => setActivePriceRange(p.id)}
+              >
+                {p.label}
+              </Badge>
+            ))}
+            {activeFilterCount > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={clearAllFilters}
+                className="ml-2 text-xs h-7 px-3 text-muted-foreground shrink-0"
+              >
+                <X className="h-3 w-3 mr-1" />
+                Clear {activeFilterCount > 1 ? `(${activeFilterCount})` : ""}
+              </Button>
+            )}
+          </div>
+          <ScrollBar orientation="horizontal" className="invisible" />
+        </ScrollArea>
       </div>
 
-      <main className="flex-1 container py-6 space-y-8">
-        <div>
-          <h2 className="text-3xl font-bold tracking-tight mb-2">Happening Today</h2>
-          <p className="text-muted-foreground">Premium experiences in Nairobi, available right now.</p>
+      <main className="flex-1 container py-6 space-y-6">
+        <div className="flex items-end justify-between">
+          <div>
+            <h2 className="text-3xl font-bold tracking-tight mb-1">
+              {deferredSearch
+                ? `Results for "${deferredSearch}"`
+                : activeNeighborhood !== "all"
+                  ? NEIGHBORHOODS.find((n) => n.id === activeNeighborhood)?.label
+                  : "Happening Today"}
+            </h2>
+            <p className="text-muted-foreground text-sm">
+              {data
+                ? `${data.pagination.total} deal${data.pagination.total !== 1 ? "s" : ""} available right now`
+                : "Premium experiences in Nairobi"}
+            </p>
+          </div>
         </div>
 
         {error && (
@@ -76,25 +206,28 @@ export default function Home() {
         ) : data?.data && data.data.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {data.data.map((deal, index) => (
-              <DealCard key={deal.id} deal={deal} featured={index === 0 && activeCategory === "all"} />
+              <DealCard
+                key={deal.id}
+                deal={deal}
+                featured={index === 0 && activeFilterCount === 0}
+              />
             ))}
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center py-20 text-center space-y-4">
             <div className="w-20 h-20 bg-muted rounded-full flex items-center justify-center">
-              <AlertCircle className="h-10 w-10 text-muted-foreground" />
+              <Search className="h-10 w-10 text-muted-foreground" />
             </div>
-            <h3 className="text-xl font-bold">No active deals found</h3>
+            <h3 className="text-xl font-bold">No deals found</h3>
             <p className="text-muted-foreground max-w-md">
-              There are no {activeCategory !== 'all' ? activeCategory : ''} deals available at this exact moment. Check back soon.
+              {deferredSearch
+                ? `No deals match "${deferredSearch}". Try a different search term.`
+                : "No deals match your current filters. Try broadening your search."}
             </p>
-            {activeCategory !== 'all' && (
-              <Badge 
-                className="cursor-pointer mt-4 py-2 px-6" 
-                onClick={() => setActiveCategory("all")}
-              >
-                View all deals
-              </Badge>
+            {activeFilterCount > 0 && (
+              <Button variant="outline" onClick={clearAllFilters} className="mt-2">
+                Clear all filters
+              </Button>
             )}
           </div>
         )}

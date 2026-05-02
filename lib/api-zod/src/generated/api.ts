@@ -495,6 +495,9 @@ export const ListDealsQueryParams = zod.object({
   status: zod
     .enum(["draft", "live", "filling_fast", "sold_out", "expired", "cancelled"])
     .optional(),
+  search: zod.coerce.string().optional(),
+  minPrice: zod.coerce.number().optional(),
+  maxPrice: zod.coerce.number().optional(),
   limit: zod.coerce.number().optional(),
   offset: zod.coerce.number().optional(),
 });

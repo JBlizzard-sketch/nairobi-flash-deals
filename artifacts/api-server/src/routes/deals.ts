@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
 import { db } from "@workspace/db";
 import { dealsTable, venuesTable, insertDealSchema } from "@workspace/db/schema";
-import { eq, and, sql, desc, gt } from "drizzle-orm";
+import { eq, and, sql, desc, gt, ilike, or, gte, lte } from "drizzle-orm";
 import { z } from "zod";
 import { fanOutDealNotification } from "../lib/push-notifications";
 import { logger } from "../lib/logger";
@@ -9,6 +9,7 @@ import { logger } from "../lib/logger";
 const router: IRouter = Router();
 
 const listQuerySchema = z.object({
+  search: z.string().optional(),
   category: z
     .enum(["lunch", "dinner", "brunch", "treatment", "class", "experience", "drinks", "tasting"])
     .optional(),
@@ -17,42 +18,61 @@ const listQuerySchema = z.object({
   status: z
     .enum(["draft", "live", "filling_fast", "sold_out", "expired", "cancelled"])
     .optional(),
+  minPrice: z.coerce.number().optional(),
+  maxPrice: z.coerce.number().optional(),
   limit: z.coerce.number().min(1).max(100).default(20),
   offset: z.coerce.number().min(0).default(0),
 });
 
-function withAvailableSlots(deal: typeof dealsTable.$inferSelect) {
-  return {
-    ...deal,
-    availableSlots: deal.totalSlots - deal.bookedSlots,
-    venue: null,
-  };
-}
-
 router.get("/deals", async (req, res) => {
   const query = listQuerySchema.parse(req.query);
   const conditions = [];
+
+  if (query.search) {
+    conditions.push(
+      or(
+        ilike(dealsTable.title, `%${query.search}%`),
+        ilike(venuesTable.name, `%${query.search}%`),
+      )!,
+    );
+  }
   if (query.category) conditions.push(eq(dealsTable.category, query.category));
   if (query.venueId) conditions.push(eq(dealsTable.venueId, query.venueId));
+  if (query.neighborhood)
+    conditions.push(
+      eq(venuesTable.neighborhood, query.neighborhood as typeof venuesTable.neighborhood._.data),
+    );
+  if (query.minPrice)
+    conditions.push(gte(sql`${dealsTable.dealPrice}::numeric`, query.minPrice));
+  if (query.maxPrice)
+    conditions.push(lte(sql`${dealsTable.dealPrice}::numeric`, query.maxPrice));
   if (query.status) conditions.push(eq(dealsTable.status, query.status));
   else conditions.push(eq(dealsTable.status, "live"));
 
-  const [data, [{ count }]] = await Promise.all([
+  const where = conditions.length ? and(...conditions) : undefined;
+
+  const [rows, [{ count }]] = await Promise.all([
     db
-      .select()
+      .select({ deal: dealsTable, venue: venuesTable })
       .from(dealsTable)
-      .where(conditions.length ? and(...conditions) : undefined)
+      .leftJoin(venuesTable, eq(dealsTable.venueId, venuesTable.id))
+      .where(where)
       .orderBy(desc(dealsTable.publishedAt))
       .limit(query.limit)
       .offset(query.offset),
     db
       .select({ count: sql<number>`count(*)` })
       .from(dealsTable)
-      .where(conditions.length ? and(...conditions) : undefined),
+      .leftJoin(venuesTable, eq(dealsTable.venueId, venuesTable.id))
+      .where(where),
   ]);
 
   res.json({
-    data: data.map(withAvailableSlots),
+    data: rows.map((r) => ({
+      ...r.deal,
+      availableSlots: r.deal.totalSlots - r.deal.bookedSlots,
+      venue: r.venue,
+    })),
     pagination: { total: Number(count), limit: query.limit, offset: query.offset },
   });
 });
@@ -72,7 +92,7 @@ router.get("/deals/trending", async (_req, res) => {
     .limit(10);
 
   res.json({
-    data: data.map(withAvailableSlots),
+    data: data.map((d) => ({ ...d, availableSlots: d.totalSlots - d.bookedSlots, venue: null })),
     pagination: { total: data.length, limit: 10, offset: 0 },
   });
 });
@@ -116,7 +136,7 @@ function coerceDates<T extends object>(raw: T): T {
 router.post("/deals", async (req, res) => {
   const body = insertDealSchema.parse(coerceDates(req.body));
   const [deal] = await db.insert(dealsTable).values(body).returning();
-  res.status(201).json(withAvailableSlots(deal));
+  res.status(201).json({ ...deal, availableSlots: deal.totalSlots - deal.bookedSlots, venue: null });
 });
 
 router.patch("/deals/:id", async (req, res) => {
@@ -132,13 +152,12 @@ router.patch("/deals/:id", async (req, res) => {
     res.status(404).json({ message: "Deal not found" });
     return;
   }
-  res.json(withAvailableSlots(deal));
+  res.json({ ...deal, availableSlots: deal.totalSlots - deal.bookedSlots, venue: null });
 });
 
 router.post("/deals/:id/publish", async (req, res) => {
   const id = Number(req.params.id);
 
-  // Join venue to get geo coords + category for notification fan-out
   const [row] = await db
     .select({ deal: dealsTable, venue: venuesTable })
     .from(dealsTable)
@@ -156,9 +175,8 @@ router.post("/deals/:id/publish", async (req, res) => {
     .where(eq(dealsTable.id, id))
     .returning();
 
-  res.json(withAvailableSlots(deal));
+  res.json({ ...deal, availableSlots: deal.totalSlots - deal.bookedSlots, venue: null });
 
-  // Fire-and-forget notification fan-out after response is sent
   setImmediate(async () => {
     try {
       const fanOut = await fanOutDealNotification({
@@ -193,7 +211,7 @@ router.post("/deals/:id/cancel", async (req, res) => {
     res.status(404).json({ message: "Deal not found" });
     return;
   }
-  res.json(withAvailableSlots(deal));
+  res.json({ ...deal, availableSlots: deal.totalSlots - deal.bookedSlots, venue: null });
 });
 
 export default router;
