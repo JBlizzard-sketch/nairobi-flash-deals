@@ -23,6 +23,10 @@ export const RegisterBody = zod.object({
   phone: zod.string().describe("E.164 format — +254XXXXXXXXX"),
   name: zod.string(),
   email: zod.string().email().optional(),
+  referralCode: zod
+    .string()
+    .optional()
+    .describe("Optional referral code from an existing user"),
 });
 
 /**
@@ -61,6 +65,7 @@ export const VerifyOtpResponse = zod.object({
     managedVenueId: zod.number().nullish(),
     loyaltyTier: zod.enum(["bronze", "silver", "gold", "platinum"]),
     loyaltyPoints: zod.number(),
+    referralCode: zod.string().nullish(),
     subscriptionCategories: zod.array(zod.string()),
     neighborhoodPref: zod.string().nullish(),
     createdAt: zod.coerce.date(),
@@ -79,6 +84,7 @@ export const GetAuthMeResponse = zod.object({
   managedVenueId: zod.number().nullish(),
   loyaltyTier: zod.enum(["bronze", "silver", "gold", "platinum"]),
   loyaltyPoints: zod.number(),
+  referralCode: zod.string().nullish(),
   subscriptionCategories: zod.array(zod.string()),
   neighborhoodPref: zod.string().nullish(),
   createdAt: zod.coerce.date(),
@@ -106,6 +112,7 @@ export const UpdateAuthMeResponse = zod.object({
   managedVenueId: zod.number().nullish(),
   loyaltyTier: zod.enum(["bronze", "silver", "gold", "platinum"]),
   loyaltyPoints: zod.number(),
+  referralCode: zod.string().nullish(),
   subscriptionCategories: zod.array(zod.string()),
   neighborhoodPref: zod.string().nullish(),
   createdAt: zod.coerce.date(),
@@ -1728,6 +1735,7 @@ export const GetMeResponse = zod.object({
   managedVenueId: zod.number().nullish(),
   loyaltyTier: zod.enum(["bronze", "silver", "gold", "platinum"]),
   loyaltyPoints: zod.number(),
+  referralCode: zod.string().nullish(),
   subscriptionCategories: zod.array(zod.string()),
   neighborhoodPref: zod.string().nullish(),
   createdAt: zod.coerce.date(),
@@ -1755,6 +1763,7 @@ export const UpdateMeResponse = zod.object({
   managedVenueId: zod.number().nullish(),
   loyaltyTier: zod.enum(["bronze", "silver", "gold", "platinum"]),
   loyaltyPoints: zod.number(),
+  referralCode: zod.string().nullish(),
   subscriptionCategories: zod.array(zod.string()),
   neighborhoodPref: zod.string().nullish(),
   createdAt: zod.coerce.date(),
@@ -2235,6 +2244,23 @@ export const RespondToRatingResponse = zod.object({
 });
 
 /**
+ * @summary My referral code and stats
+ */
+export const GetMyReferralStatsResponse = zod.object({
+  referralCode: zod.string().nullable(),
+  referredCount: zod.number(),
+  bonusesPaid: zod.number(),
+  pendingCount: zod.number(),
+  pointsEarned: zod.number(),
+  referredUsers: zod.array(
+    zod.object({
+      name: zod.string(),
+      joinedAt: zod.string(),
+    }),
+  ),
+});
+
+/**
  * @summary Platform-wide statistics (admin only)
  */
 export const GetAdminStatsResponse = zod.object({
@@ -2574,6 +2600,7 @@ export const ListAdminUsersResponse = zod.object({
       managedVenueId: zod.number().nullish(),
       loyaltyTier: zod.enum(["bronze", "silver", "gold", "platinum"]),
       loyaltyPoints: zod.number(),
+      referralCode: zod.string().nullish(),
       subscriptionCategories: zod.array(zod.string()),
       neighborhoodPref: zod.string().nullish(),
       createdAt: zod.coerce.date(),

@@ -19,11 +19,16 @@ function generateOtp(): string {
   return randomInt(100000, 999999).toString();
 }
 
+function generateReferralCode(userId: number): string {
+  return `NFD${userId.toString(36).toUpperCase().padStart(4, "0")}`;
+}
+
 router.post("/auth/register", async (req, res) => {
   const bodySchema = z.object({
     phone: phoneSchema,
     name: z.string().min(2).max(100),
     email: z.string().email().optional(),
+    referralCode: z.string().optional(),
   });
   const body = bodySchema.parse(req.body);
 
@@ -37,10 +42,26 @@ router.post("/auth/register", async (req, res) => {
     return;
   }
 
+  // Resolve referrer
+  let referredByUserId: number | null = null;
+  if (body.referralCode) {
+    const [referrer] = await db
+      .select({ id: usersTable.id })
+      .from(usersTable)
+      .where(eq(usersTable.referralCode, body.referralCode.toUpperCase()));
+    if (referrer) referredByUserId = referrer.id;
+  }
+
   const [user] = await db
     .insert(usersTable)
-    .values({ phone: body.phone, name: body.name, email: body.email ?? null })
+    .values({ phone: body.phone, name: body.name, email: body.email ?? null, referredByUserId })
     .returning();
+
+  // Assign referral code based on id
+  await db
+    .update(usersTable)
+    .set({ referralCode: generateReferralCode(user.id) })
+    .where(eq(usersTable.id, user.id));
 
   const code = generateOtp();
   const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
@@ -183,6 +204,7 @@ router.get("/auth/me", requireAuth, async (req, res) => {
     managedVenueId: user.managedVenueId,
     loyaltyTier: user.loyaltyTier,
     loyaltyPoints: user.loyaltyPoints,
+    referralCode: user.referralCode,
     subscriptionCategories: user.subscriptionCategories,
     neighborhoodPref: user.neighborhoodPref,
     latitude: user.latitude,

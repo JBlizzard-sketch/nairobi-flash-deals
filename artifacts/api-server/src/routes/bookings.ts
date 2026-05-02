@@ -1,12 +1,48 @@
 import { Router, type IRouter } from "express";
 import { db } from "@workspace/db";
 import { bookingsTable, dealsTable, venuesTable, usersTable } from "@workspace/db/schema";
-import { eq, sql, and } from "drizzle-orm";
+import { eq, sql, and, ne } from "drizzle-orm";
 import { z } from "zod";
 import { randomBytes } from "crypto";
 import { isDarajaConfigured, initiateSTKPush } from "../lib/daraja";
 import { logger } from "../lib/logger";
 import { awardLoyaltyPoints } from "./ratings";
+
+const REFERRER_BONUS_PTS = 500;
+const REFEREE_BONUS_PTS = 150;
+
+async function maybePayReferralBonus(userId: number, bookingId: number): Promise<void> {
+  // Is this the user's first confirmed booking?
+  const [{ cnt }] = await db
+    .select({ cnt: sql<number>`count(*)` })
+    .from(bookingsTable)
+    .where(
+      and(
+        eq(bookingsTable.userId, userId),
+        eq(bookingsTable.status, "confirmed"),
+        ne(bookingsTable.id, bookingId)
+      )
+    );
+  if (Number(cnt) > 0) return; // not first booking
+
+  // Was this user referred?
+  const [user] = await db
+    .select({ referredByUserId: usersTable.referredByUserId })
+    .from(usersTable)
+    .where(eq(usersTable.id, userId));
+
+  if (!user?.referredByUserId) return;
+
+  // Pay bonuses
+  await Promise.all([
+    awardLoyaltyPoints(user.referredByUserId, REFERRER_BONUS_PTS),
+    awardLoyaltyPoints(userId, REFEREE_BONUS_PTS),
+    db
+      .update(bookingsTable)
+      .set({ referralBonusPaid: true, updatedAt: new Date() })
+      .where(eq(bookingsTable.id, bookingId)),
+  ]);
+}
 
 const router: IRouter = Router();
 
@@ -154,6 +190,8 @@ router.post("/bookings", async (req, res) => {
     // Award 100 loyalty points per slot on confirmation
     if (body.userId) {
       await awardLoyaltyPoints(body.userId, 100 * body.slots);
+      // Referral bonus: if this is the user's first confirmed booking, reward referrer
+      await maybePayReferralBonus(body.userId, booking.id);
     }
   }
 

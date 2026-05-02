@@ -9,6 +9,7 @@ import ratingsRouter from "./ratings";
 import whatsappRouter from "./whatsapp";
 import notificationsRouter from "./notifications";
 import adminRouter from "./admin";
+import referralsRouter from "./referrals";
 
 const router: IRouter = Router();
 
@@ -22,5 +23,6 @@ router.use(ratingsRouter);
 router.use(whatsappRouter);
 router.use(notificationsRouter);
 router.use(adminRouter);
+router.use(referralsRouter);
 
 export default router;

@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useLocation } from "wouter";
+import { useState, useEffect } from "react";
+import { useLocation, useSearch } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { useLogin, useRegister, useVerifyOtp } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
@@ -8,9 +8,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Gift } from "lucide-react";
 
 export default function Auth() {
   const [, setLocation] = useLocation();
+  const search = useSearch();
   const { login: setAuthToken } = useAuth();
   const { toast } = useToast();
 
@@ -19,6 +21,21 @@ export default function Auth() {
   const [otp, setOtp] = useState("");
   const [step, setStep] = useState<"phone" | "otp">("phone");
   const [mode, setMode] = useState<"login" | "register">("login");
+  const [pendingRefCode, setPendingRefCode] = useState<string | null>(null);
+
+  // Capture ?ref= referral code from URL on mount
+  useEffect(() => {
+    const params = new URLSearchParams(search);
+    const ref = params.get("ref");
+    if (ref) {
+      setPendingRefCode(ref.toUpperCase());
+      setMode("register");
+      sessionStorage.setItem("nfd_ref", ref.toUpperCase());
+    } else {
+      const stored = sessionStorage.getItem("nfd_ref");
+      if (stored) setPendingRefCode(stored);
+    }
+  }, [search]);
 
   const loginMutation = useLogin();
   const registerMutation = useRegister();
@@ -44,7 +61,7 @@ export default function Auth() {
     } else {
       if (!name) return;
       registerMutation.mutate(
-        { data: { phone, name } },
+        { data: { phone, name, referralCode: pendingRefCode ?? undefined } },
         {
           onSuccess: (data) => {
             setStep("otp");
@@ -67,6 +84,7 @@ export default function Auth() {
       {
         onSuccess: (data) => {
           setAuthToken(data.token);
+          sessionStorage.removeItem("nfd_ref");
           toast({ title: "Success", description: "Successfully authenticated" });
           setLocation("/");
         },
@@ -93,7 +111,16 @@ export default function Auth() {
                 <TabsTrigger value="login">Login</TabsTrigger>
                 <TabsTrigger value="register">Register</TabsTrigger>
               </TabsList>
-              
+
+              {pendingRefCode && mode === "register" && (
+                <div className="flex items-center gap-2 text-sm bg-green-50 border border-green-200 rounded-lg px-3 py-2 mb-4">
+                  <Gift className="h-4 w-4 text-green-600 shrink-0" />
+                  <span className="text-green-800">
+                    Referral code <strong>{pendingRefCode}</strong> applied — you'll earn 150 bonus points on your first booking!
+                  </span>
+                </div>
+              )}
+
               <form onSubmit={handlePhoneSubmit} className="space-y-4">
                 {mode === "register" && (
                   <div className="space-y-2">
@@ -118,8 +145,8 @@ export default function Auth() {
                     required
                   />
                 </div>
-                <Button 
-                  type="submit" 
+                <Button
+                  type="submit"
                   className="w-full"
                   disabled={loginMutation.isPending || registerMutation.isPending}
                 >
@@ -141,16 +168,16 @@ export default function Auth() {
                   required
                 />
               </div>
-              <Button 
-                type="submit" 
+              <Button
+                type="submit"
                 className="w-full"
                 disabled={verifyMutation.isPending}
               >
                 {verifyMutation.isPending ? "Verifying..." : "Verify & Sign In"}
               </Button>
-              <Button 
-                type="button" 
-                variant="ghost" 
+              <Button
+                type="button"
+                variant="ghost"
                 className="w-full"
                 onClick={() => setStep("phone")}
               >

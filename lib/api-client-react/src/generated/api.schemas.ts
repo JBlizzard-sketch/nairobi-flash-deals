@@ -301,6 +301,8 @@ export interface RegisterRequest {
   phone: string;
   name: string;
   email?: string;
+  /** Optional referral code from an existing user */
+  referralCode?: string;
 }
 
 export interface LoginRequest {
@@ -342,6 +344,7 @@ export interface User {
   managedVenueId?: number | null;
   loyaltyTier: LoyaltyTier;
   loyaltyPoints: number;
+  referralCode?: string | null;
   subscriptionCategories: string[];
   neighborhoodPref?: string | null;
   createdAt: string;
@@ -468,6 +471,20 @@ export interface CreateBookingRequest {
 export interface BookingListResponse {
   data: Booking[];
   pagination: Pagination;
+}
+
+export interface ReferralUserEntry {
+  name: string;
+  joinedAt: string;
+}
+
+export interface ReferralStats {
+  referralCode: string | null;
+  referredCount: number;
+  bonusesPaid: number;
+  pendingCount: number;
+  pointsEarned: number;
+  referredUsers: ReferralUserEntry[];
 }
 
 export interface AdminDailyEntry {

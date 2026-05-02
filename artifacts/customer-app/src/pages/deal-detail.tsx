@@ -152,8 +152,13 @@ export default function DealDetail() {
             <Ticket className="w-4 h-4 mr-2" /> My Bookings
           </Button>
           <Button variant="outline" size="icon" onClick={() => {
+            const refCode = (user as { referralCode?: string } | null)?.referralCode;
+            const shareUrl = `${window.location.origin}${window.location.pathname}${refCode ? `?ref=${refCode}` : ""}`;
+            const text = `I just booked a flash deal on Nairobi Flash Deals! 🍽️✨\nConfirmation: ${confirmedBooking.confirmationCode}${refCode ? `\n\nUse my code *${refCode}* when you sign up for 150 bonus points:\n${shareUrl}` : ""}`;
             if (navigator.share) {
-              navigator.share({ title: "NFD Deal", text: `My code: ${confirmedBooking.confirmationCode}` });
+              navigator.share({ title: "NFD Deal Booked!", text, url: shareUrl });
+            } else {
+              navigator.clipboard?.writeText(text);
             }
           }}>
             <Share2 className="w-4 h-4" />

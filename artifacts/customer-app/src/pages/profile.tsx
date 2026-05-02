@@ -1,12 +1,13 @@
 import { useAuth } from "@/hooks/use-auth";
 import { Redirect, useLocation } from "wouter";
-import { useLogout } from "@workspace/api-client-react";
+import { useLogout, useGetMyReferralStats } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { LogOut, Phone, Star, Settings, Trophy, Zap } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { LogOut, Phone, Star, Settings, Trophy, Zap, Gift, Copy, Share2, Users, CheckCircle2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 type LoyaltyTier = "bronze" | "silver" | "gold" | "platinum";
@@ -60,18 +61,100 @@ function LoyaltyCard({ points, tier }: { points: number; tier: LoyaltyTier }) {
           </div>
         )}
 
-        <div className="grid grid-cols-3 gap-2 pt-1">
+        <div className="grid grid-cols-4 gap-2 pt-1">
           {[
             { label: "Per booking", pts: "+100" },
             { label: "Check-in",    pts: "+25" },
             { label: "Review",      pts: "+50" },
+            { label: "Referral",    pts: "+500" },
           ].map((item) => (
             <div key={item.label} className="bg-muted/60 rounded-lg p-2 text-center">
               <p className="text-primary font-bold text-sm">{item.pts}</p>
-              <p className="text-[10px] text-muted-foreground">{item.label}</p>
+              <p className="text-[10px] text-muted-foreground leading-tight">{item.label}</p>
             </div>
           ))}
         </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function ReferralCard({ referralCode, isAuthenticated }: { referralCode?: string | null; isAuthenticated: boolean }) {
+  const { toast } = useToast();
+  const { data: stats, isLoading } = useGetMyReferralStats({ query: { enabled: isAuthenticated } });
+
+  const shareLink = referralCode
+    ? `${window.location.origin}/auth?ref=${referralCode}`
+    : null;
+
+  function copyCode() {
+    if (!referralCode) return;
+    navigator.clipboard.writeText(referralCode).then(() =>
+      toast({ title: "Copied!", description: `Code ${referralCode} copied to clipboard` })
+    );
+  }
+
+  function shareWhatsApp() {
+    if (!shareLink) return;
+    const text = encodeURIComponent(
+      `Join me on Nairobi Flash Deals — the best last-minute deals at top restaurants, spas & more in Nairobi! 🍽️✨\n\nUse my referral code *${referralCode}* when you sign up and get 150 bonus loyalty points on your first booking:\n${shareLink}`
+    );
+    window.open(`https://wa.me/?text=${text}`, "_blank");
+  }
+
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+          <Gift className="h-4 w-4" /> Refer &amp; Earn
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <p className="text-sm text-muted-foreground">
+          Share your code with friends. You get <strong className="text-foreground">500 pts</strong> and they get <strong className="text-foreground">150 pts</strong> on their first booking.
+        </p>
+
+        {referralCode ? (
+          <div className="flex items-center gap-2">
+            <div className="flex-1 bg-muted rounded-lg px-3 py-2.5 font-mono text-lg font-bold tracking-widest text-center text-primary">
+              {referralCode}
+            </div>
+            <Button size="icon" variant="outline" onClick={copyCode} title="Copy code">
+              <Copy className="h-4 w-4" />
+            </Button>
+          </div>
+        ) : (
+          <Skeleton className="h-12 w-full rounded-lg" />
+        )}
+
+        <Button
+          className="w-full gap-2 bg-green-600 hover:bg-green-700 text-white"
+          onClick={shareWhatsApp}
+          disabled={!shareLink}
+        >
+          <Share2 className="h-4 w-4" />
+          Share via WhatsApp
+        </Button>
+
+        {isLoading ? (
+          <div className="grid grid-cols-3 gap-2 pt-1">
+            {[1, 2, 3].map((i) => <Skeleton key={i} className="h-14 rounded-lg" />)}
+          </div>
+        ) : stats ? (
+          <div className="grid grid-cols-3 gap-2 pt-1 border-t border-border/40">
+            {[
+              { label: "Referred",  value: stats.referredCount,   icon: Users },
+              { label: "Converted", value: stats.bonusesPaid,     icon: CheckCircle2 },
+              { label: "Pts Earned",value: stats.pointsEarned,    icon: Star },
+            ].map(({ label, value, icon: Icon }) => (
+              <div key={label} className="bg-muted/60 rounded-lg p-2 text-center space-y-1">
+                <Icon className="h-4 w-4 text-primary mx-auto" />
+                <p className="text-base font-bold">{typeof value === "number" ? value.toLocaleString() : value}</p>
+                <p className="text-[10px] text-muted-foreground">{label}</p>
+              </div>
+            ))}
+          </div>
+        ) : null}
       </CardContent>
     </Card>
   );
@@ -101,6 +184,7 @@ export default function Profile() {
 
   const tier = (user.loyaltyTier ?? "bronze") as LoyaltyTier;
   const points = user.loyaltyPoints ?? 0;
+  const referralCode = (user as { referralCode?: string | null }).referralCode;
 
   return (
     <div className="container py-6 space-y-6 min-h-screen pb-24">
@@ -122,6 +206,8 @@ export default function Profile() {
       </div>
 
       <LoyaltyCard points={points} tier={tier} />
+
+      <ReferralCard referralCode={referralCode} isAuthenticated={isAuthenticated} />
 
       <Card>
         <CardHeader className="pb-3">
@@ -152,20 +238,6 @@ export default function Profile() {
               </p>
             </div>
           )}
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardContent className="p-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center shrink-0">
-              <Zap className="h-5 w-5 text-primary" />
-            </div>
-            <div>
-              <p className="text-sm font-medium">Earn more points</p>
-              <p className="text-xs text-muted-foreground">Book deals, check in, and leave reviews to climb the tiers</p>
-            </div>
-          </div>
         </CardContent>
       </Card>
 

@@ -23,6 +23,8 @@ export const usersTable = pgTable("users", {
   managedVenueId: integer("managed_venue_id"),
   pushToken: text("push_token"),
   isActive: boolean("is_active").notNull().default(true),
+  referralCode: text("referral_code").unique(),
+  referredByUserId: integer("referred_by_user_id"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
@@ -31,6 +33,7 @@ export const insertUserSchema = createInsertSchema(usersTable).omit({
   id: true,
   loyaltyTier: true,
   loyaltyPoints: true,
+  referralCode: true,
   createdAt: true,
   updatedAt: true,
 });

@@ -44,6 +44,7 @@ export const bookingsTable = pgTable("bookings", {
   specialRequests: text("special_requests"),
   isCorporate: boolean("is_corporate").notNull().default(false),
   corporateName: text("corporate_name"),
+  referralBonusPaid: boolean("referral_bonus_paid").notNull().default(false),
   checkedInAt: timestamp("checked_in_at"),
   completedAt: timestamp("completed_at"),
   cancelledAt: timestamp("cancelled_at"),
@@ -54,6 +55,7 @@ export const bookingsTable = pgTable("bookings", {
 export const insertBookingSchema = createInsertSchema(bookingsTable).omit({
   id: true,
   status: true,
+  referralBonusPaid: true,
   checkedInAt: true,
   completedAt: true,
   cancelledAt: true,

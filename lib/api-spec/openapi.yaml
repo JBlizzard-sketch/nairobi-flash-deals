@@ -944,6 +944,22 @@ paths:
         "404":
           $ref: "#/components/responses/NotFound"
 
+  # ── Referrals ─────────────────────────────────────────────────
+  /referrals/my:
+    get:
+      operationId: getMyReferralStats
+      tags: [referrals]
+      summary: My referral code and stats
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Referral stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReferralStats"
+
   # ── Admin ─────────────────────────────────────────────────────
   /admin/stats:
     get:
@@ -1316,6 +1332,9 @@ components:
         email:
           type: string
           format: email
+        referralCode:
+          type: string
+          description: Optional referral code from an existing user
       required: [phone, name]
 
     LoginRequest:
@@ -1849,6 +1868,29 @@ components:
           $ref: "#/components/schemas/Pagination"
       required: [data, pagination]
 
+    ReferralUserEntry:
+      type: object
+      properties:
+        name: { type: string }
+        joinedAt: { type: string }
+      required: [name, joinedAt]
+
+    ReferralStats:
+      type: object
+      properties:
+        referralCode:
+          type: string
+          nullable: true
+        referredCount: { type: number }
+        bonusesPaid: { type: number }
+        pendingCount: { type: number }
+        pointsEarned: { type: number }
+        referredUsers:
+          type: array
+          items:
+            $ref: "#/components/schemas/ReferralUserEntry"
+      required: [referralCode, referredCount, bonusesPaid, pendingCount, pointsEarned, referredUsers]
+
     AdminDailyEntry:
       type: object
       properties:
@@ -1938,6 +1980,9 @@ components:
           $ref: "#/components/schemas/LoyaltyTier"
         loyaltyPoints:
           type: number
+        referralCode:
+          type: string
+          nullable: true
         subscriptionCategories:
           type: array
           items:
