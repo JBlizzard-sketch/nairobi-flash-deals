@@ -29,7 +29,6 @@ import type {
   Deal,
   DealListResponse,
   Error,
-  ErrorResponse,
   GetNotificationLogParams,
   HealthStatus,
   InitiatePaymentRequest,
@@ -3851,7 +3850,7 @@ export const joinWaitlist = async (
 };
 
 export const getJoinWaitlistMutationOptions = <
-  TError = ErrorType<ErrorResponse>,
+  TError = ErrorType<Error>,
   TContext = unknown,
 >(options?: {
   mutation?: UseMutationOptions<
@@ -3892,13 +3891,13 @@ export type JoinWaitlistMutationResult = NonNullable<
   Awaited<ReturnType<typeof joinWaitlist>>
 >;
 
-export type JoinWaitlistMutationError = ErrorType<ErrorResponse>;
+export type JoinWaitlistMutationError = ErrorType<Error>;
 
 /**
  * @summary Join waitlist for a sold-out deal
  */
 export const useJoinWaitlist = <
-  TError = ErrorType<ErrorResponse>,
+  TError = ErrorType<Error>,
   TContext = unknown,
 >(options?: {
   mutation?: UseMutationOptions<

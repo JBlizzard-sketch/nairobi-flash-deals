@@ -113,8 +113,8 @@ export default function DealDetail() {
             message: (data as { message?: string }).message,
           });
         },
-        onError: (err: Error & { response?: { data?: { message?: string } } }) => {
-          const msg = err.response?.data?.message ?? err.message;
+        onError: (err: unknown) => {
+          const msg = (err as { message?: string })?.message ?? "Booking failed";
           toast({ title: "Booking Failed", description: msg, variant: "destructive" });
         },
       }
@@ -185,8 +185,8 @@ export default function DealDetail() {
         queryClient.invalidateQueries({ queryKey: getCheckWaitlistStatusQueryKey(dealId) });
         toast({ title: "You're on the waitlist!", description: "We'll notify you the moment a slot opens." });
       },
-      onError: (err: Error & { response?: { data?: { message?: string } } }) => {
-        toast({ title: "Could not join", description: err.response?.data?.message ?? err.message, variant: "destructive" });
+      onError: (err: unknown) => {
+        toast({ title: "Could not join", description: (err as { message?: string })?.message ?? "Failed to join waitlist", variant: "destructive" });
       },
     });
   };
@@ -353,6 +353,7 @@ export default function DealDetail() {
                 </form>
               </DialogContent>
             </Dialog>
+            )}
           </CardContent>
         </Card>
 
