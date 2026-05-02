@@ -29,7 +29,6 @@ export const bookingsTable = pgTable("bookings", {
     .notNull()
     .references(() => dealsTable.id),
   userId: integer("user_id")
-    .notNull()
     .references(() => usersTable.id),
   venueId: integer("venue_id")
     .notNull()

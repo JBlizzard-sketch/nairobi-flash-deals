@@ -6,6 +6,11 @@
  * OpenAPI spec version: 0.2.0
  */
 
-export interface HealthStatus {
-  status: string;
+export interface CreateBookingRequest {
+  dealId: number;
+  slots: number;
+  specialRequests?: string;
+  isCorporate?: boolean;
+  corporateName?: string;
+  phoneNumber: string;
 }

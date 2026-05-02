@@ -5,7 +5,9 @@
  * Nairobi Flash Deals API — premium same-day deal platform for upscale venues
  * OpenAPI spec version: 0.2.0
  */
+import type { Error } from "./error";
 
-export interface HealthStatus {
-  status: string;
-}
+/**
+ * Invalid request
+ */
+export type BadRequestResponse = Error;

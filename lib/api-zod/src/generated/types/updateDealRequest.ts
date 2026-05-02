@@ -6,6 +6,11 @@
  * OpenAPI spec version: 0.2.0
  */
 
-export interface HealthStatus {
-  status: string;
+export interface UpdateDealRequest {
+  title?: string;
+  description?: string;
+  totalSlots?: number;
+  startsAt?: Date;
+  endsAt?: Date;
+  imageUrl?: string;
 }

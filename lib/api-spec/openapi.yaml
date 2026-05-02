@@ -2,14 +2,25 @@ openapi: 3.1.0
 info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
-  version: 0.1.0
-  description: API specification
+  version: 0.2.0
+  description: Nairobi Flash Deals API — premium same-day deal platform for upscale venues
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: venues
+    description: Venue management
+  - name: deals
+    description: Flash deal lifecycle
+  - name: bookings
+    description: Booking and payment flow
+  - name: users
+    description: Customer accounts and preferences
+  - name: ratings
+    description: Post-visit ratings and reviews
+
 paths:
   /healthz:
     get:
@@ -24,7 +35,460 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  # ── Venues ───────────────────────────────────────────────────
+  /venues:
+    get:
+      operationId: listVenues
+      tags: [venues]
+      summary: List approved venues
+      parameters:
+        - in: query
+          name: category
+          schema:
+            $ref: "#/components/schemas/VenueCategory"
+        - in: query
+          name: neighborhood
+          schema:
+            $ref: "#/components/schemas/VenueNeighborhood"
+        - in: query
+          name: limit
+          schema:
+            type: number
+        - in: query
+          name: offset
+          schema:
+            type: number
+      responses:
+        "200":
+          description: List of venues
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VenueListResponse"
+    post:
+      operationId: createVenue
+      tags: [venues]
+      summary: Submit a venue for approval
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateVenueRequest"
+      responses:
+        "201":
+          description: Venue created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Venue"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /venues/{id}:
+    get:
+      operationId: getVenue
+      tags: [venues]
+      summary: Get a single venue
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "200":
+          description: Venue detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Venue"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    patch:
+      operationId: updateVenue
+      tags: [venues]
+      summary: Update venue details
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateVenueRequest"
+      responses:
+        "200":
+          description: Updated venue
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Venue"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /venues/{id}/approve:
+    post:
+      operationId: approveVenue
+      tags: [venues]
+      summary: Admin — approve a venue
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "200":
+          description: Venue approved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Venue"
+
+  /venues/{id}/analytics:
+    get:
+      operationId: getVenueAnalytics
+      tags: [venues]
+      summary: Venue performance analytics
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "200":
+          description: Analytics data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VenueAnalytics"
+
+  # ── Deals ────────────────────────────────────────────────────
+  /deals:
+    get:
+      operationId: listDeals
+      tags: [deals]
+      summary: List live deals (trending feed)
+      parameters:
+        - in: query
+          name: category
+          schema:
+            $ref: "#/components/schemas/DealCategory"
+        - in: query
+          name: neighborhood
+          schema:
+            $ref: "#/components/schemas/VenueNeighborhood"
+        - in: query
+          name: venueId
+          schema:
+            type: number
+        - in: query
+          name: status
+          schema:
+            $ref: "#/components/schemas/DealStatus"
+        - in: query
+          name: limit
+          schema:
+            type: number
+        - in: query
+          name: offset
+          schema:
+            type: number
+      responses:
+        "200":
+          description: List of deals
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DealListResponse"
+    post:
+      operationId: createDeal
+      tags: [deals]
+      summary: Create a flash deal
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateDealRequest"
+      responses:
+        "201":
+          description: Deal created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Deal"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /deals/trending:
+    get:
+      operationId: getTrendingDeals
+      tags: [deals]
+      summary: Filling fast today — real-time trending
+      responses:
+        "200":
+          description: Trending deals
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DealListResponse"
+
+  /deals/{id}:
+    get:
+      operationId: getDeal
+      tags: [deals]
+      summary: Get a single deal with live slot count
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "200":
+          description: Deal detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Deal"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    patch:
+      operationId: updateDeal
+      tags: [deals]
+      summary: Update a deal (venue manager)
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateDealRequest"
+      responses:
+        "200":
+          description: Updated deal
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Deal"
+
+  /deals/{id}/publish:
+    post:
+      operationId: publishDeal
+      tags: [deals]
+      summary: Go live — publish a draft deal
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "200":
+          description: Deal is now live
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Deal"
+
+  /deals/{id}/cancel:
+    post:
+      operationId: cancelDeal
+      tags: [deals]
+      summary: Cancel a live deal
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "200":
+          description: Deal cancelled
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Deal"
+
+  # ── Bookings ─────────────────────────────────────────────────
+  /bookings:
+    get:
+      operationId: listBookings
+      tags: [bookings]
+      summary: List bookings for current user
+      parameters:
+        - in: query
+          name: status
+          schema:
+            $ref: "#/components/schemas/BookingStatus"
+        - in: query
+          name: limit
+          schema:
+            type: number
+        - in: query
+          name: offset
+          schema:
+            type: number
+      responses:
+        "200":
+          description: Booking list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BookingListResponse"
+    post:
+      operationId: createBooking
+      tags: [bookings]
+      summary: Reserve slots on a deal (initiates Mpesa payment)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateBookingRequest"
+      responses:
+        "201":
+          description: Booking created — awaiting payment
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Booking"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "409":
+          description: No slots available
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /bookings/{id}:
+    get:
+      operationId: getBooking
+      tags: [bookings]
+      summary: Get booking details
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "200":
+          description: Booking detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Booking"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /bookings/{id}/cancel:
+    post:
+      operationId: cancelBooking
+      tags: [bookings]
+      summary: Cancel a booking
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "200":
+          description: Booking cancelled
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Booking"
+
+  /bookings/{id}/checkin:
+    post:
+      operationId: checkInBooking
+      tags: [bookings]
+      summary: Venue staff check-in confirmation
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "200":
+          description: Checked in
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Booking"
+
+  # ── Users ────────────────────────────────────────────────────
+  /users/me:
+    get:
+      operationId: getMe
+      tags: [users]
+      summary: Get current user profile
+      responses:
+        "200":
+          description: User profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+    patch:
+      operationId: updateMe
+      tags: [users]
+      summary: Update profile and notification preferences
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateUserRequest"
+      responses:
+        "200":
+          description: Updated profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+
+  # ── Ratings ──────────────────────────────────────────────────
+  /ratings:
+    post:
+      operationId: createRating
+      tags: [ratings]
+      summary: Submit a post-visit rating
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateRatingRequest"
+      responses:
+        "201":
+          description: Rating submitted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Rating"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /ratings/venue/{venueId}:
+    get:
+      operationId: listVenueRatings
+      tags: [ratings]
+      summary: List ratings for a venue
+      parameters:
+        - in: path
+          name: venueId
+          required: true
+          schema:
+            type: number
+        - in: query
+          name: limit
+          schema:
+            type: number
+      responses:
+        "200":
+          description: Venue ratings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RatingListResponse"
+
 components:
+  parameters:
+    Id:
+      in: path
+      name: id
+      required: true
+      schema:
+        type: number
+
+  responses:
+    BadRequest:
+      description: Invalid request
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+
   schemas:
     HealthStatus:
       type: object
@@ -33,4 +497,561 @@ components:
           type: string
       required:
         - status
+
+    Error:
+      type: object
+      properties:
+        message:
+          type: string
+        code:
+          type: string
+      required: [message]
+
+    Pagination:
+      type: object
+      properties:
+        total:
+          type: number
+        limit:
+          type: number
+        offset:
+          type: number
+      required: [total, limit, offset]
+
+    VenueCategory:
+      type: string
+      enum: [restaurant, spa, bar, fitness, experience]
+
+    VenueNeighborhood:
+      type: string
+      enum: [westlands, kilimani, cbd, karen, langata, lavington, kileleshwa, runda, muthaiga, gigiri, upper_hill, other]
+
+    VenueStatus:
+      type: string
+      enum: [pending_approval, approved, suspended]
+
+    DealStatus:
+      type: string
+      enum: [draft, live, filling_fast, sold_out, expired, cancelled]
+
+    DealCategory:
+      type: string
+      enum: [lunch, dinner, brunch, treatment, class, experience, drinks, tasting]
+
+    BookingStatus:
+      type: string
+      enum: [pending_payment, confirmed, checked_in, completed, cancelled, refunded]
+
+    LoyaltyTier:
+      type: string
+      enum: [bronze, silver, gold, platinum]
+
+    Venue:
+      type: object
+      properties:
+        id:
+          type: number
+        name:
+          type: string
+        slug:
+          type: string
+        category:
+          $ref: "#/components/schemas/VenueCategory"
+        neighborhood:
+          $ref: "#/components/schemas/VenueNeighborhood"
+        address:
+          type: string
+        latitude:
+          type: string
+          nullable: true
+        longitude:
+          type: string
+          nullable: true
+        description:
+          type: string
+        coverImage:
+          type: string
+          nullable: true
+        images:
+          type: array
+          items:
+            type: string
+        commissionRate:
+          type: string
+        status:
+          $ref: "#/components/schemas/VenueStatus"
+        averageRating:
+          type: string
+          nullable: true
+        totalRatings:
+          type: number
+        totalBookings:
+          type: number
+        fillRate:
+          type: string
+          nullable: true
+        tags:
+          type: array
+          items:
+            type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - name
+        - slug
+        - category
+        - neighborhood
+        - address
+        - description
+        - images
+        - commissionRate
+        - status
+        - totalRatings
+        - totalBookings
+        - tags
+        - createdAt
+        - updatedAt
+
+    CreateVenueRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        slug:
+          type: string
+        category:
+          $ref: "#/components/schemas/VenueCategory"
+        neighborhood:
+          $ref: "#/components/schemas/VenueNeighborhood"
+        address:
+          type: string
+        description:
+          type: string
+        whatsappNumber:
+          type: string
+        contactEmail:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+      required: [name, slug, category, neighborhood, address, description]
+
+    UpdateVenueRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        coverImage:
+          type: string
+        images:
+          type: array
+          items:
+            type: string
+        whatsappNumber:
+          type: string
+        contactEmail:
+          type: string
+        websiteUrl:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+
+    VenueListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Venue"
+        pagination:
+          $ref: "#/components/schemas/Pagination"
+      required: [data, pagination]
+
+    VenueAnalytics:
+      type: object
+      properties:
+        venueId:
+          type: number
+        totalDeals:
+          type: number
+        totalBookings:
+          type: number
+        fillRate:
+          type: number
+        averageRating:
+          type: number
+        totalRevenue:
+          type: number
+        topDealCategory:
+          type: string
+        bestDay:
+          type: string
+        bestHour:
+          type: number
+        recentDeals:
+          type: array
+          items:
+            $ref: "#/components/schemas/Deal"
+      required:
+        - venueId
+        - totalDeals
+        - totalBookings
+        - fillRate
+        - averageRating
+        - totalRevenue
+        - recentDeals
+
+    Deal:
+      type: object
+      properties:
+        id:
+          type: number
+        venueId:
+          type: number
+        title:
+          type: string
+        description:
+          type: string
+        category:
+          $ref: "#/components/schemas/DealCategory"
+        discountPercent:
+          type: number
+        originalPrice:
+          type: string
+        dealPrice:
+          type: string
+        totalSlots:
+          type: number
+        bookedSlots:
+          type: number
+        availableSlots:
+          type: number
+        status:
+          $ref: "#/components/schemas/DealStatus"
+        startsAt:
+          type: string
+          format: date-time
+        endsAt:
+          type: string
+          format: date-time
+        imageUrl:
+          type: string
+          nullable: true
+        isStanding:
+          type: boolean
+        viewCount:
+          type: number
+        venue:
+          $ref: "#/components/schemas/Venue"
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - venueId
+        - title
+        - description
+        - category
+        - discountPercent
+        - originalPrice
+        - dealPrice
+        - totalSlots
+        - bookedSlots
+        - availableSlots
+        - status
+        - startsAt
+        - endsAt
+        - isStanding
+        - viewCount
+        - createdAt
+        - updatedAt
+
+    CreateDealRequest:
+      type: object
+      properties:
+        venueId:
+          type: number
+        title:
+          type: string
+        description:
+          type: string
+        category:
+          $ref: "#/components/schemas/DealCategory"
+        discountPercent:
+          type: number
+        originalPrice:
+          type: string
+        dealPrice:
+          type: string
+        totalSlots:
+          type: number
+        startsAt:
+          type: string
+          format: date-time
+        endsAt:
+          type: string
+          format: date-time
+        imageUrl:
+          type: string
+        isStanding:
+          type: boolean
+        standingDaysOfWeek:
+          type: array
+          items:
+            type: number
+        autoActivateThreshold:
+          type: number
+      required:
+        - venueId
+        - title
+        - description
+        - category
+        - discountPercent
+        - originalPrice
+        - dealPrice
+        - totalSlots
+        - startsAt
+        - endsAt
+
+    UpdateDealRequest:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        totalSlots:
+          type: number
+        startsAt:
+          type: string
+          format: date-time
+        endsAt:
+          type: string
+          format: date-time
+        imageUrl:
+          type: string
+
+    DealListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Deal"
+        pagination:
+          $ref: "#/components/schemas/Pagination"
+      required: [data, pagination]
+
+    Booking:
+      type: object
+      properties:
+        id:
+          type: number
+        dealId:
+          type: number
+        userId:
+          type: number
+        venueId:
+          type: number
+        slots:
+          type: number
+        totalAmount:
+          type: string
+        commissionAmount:
+          type: string
+        venueAmount:
+          type: string
+        status:
+          $ref: "#/components/schemas/BookingStatus"
+        mpesaRef:
+          type: string
+          nullable: true
+        confirmationCode:
+          type: string
+        specialRequests:
+          type: string
+          nullable: true
+        isCorporate:
+          type: boolean
+        deal:
+          $ref: "#/components/schemas/Deal"
+          nullable: true
+        venue:
+          $ref: "#/components/schemas/Venue"
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - dealId
+        - userId
+        - venueId
+        - slots
+        - totalAmount
+        - commissionAmount
+        - venueAmount
+        - status
+        - confirmationCode
+        - isCorporate
+        - createdAt
+        - updatedAt
+
+    CreateBookingRequest:
+      type: object
+      properties:
+        dealId:
+          type: number
+        slots:
+          type: number
+        specialRequests:
+          type: string
+        isCorporate:
+          type: boolean
+        corporateName:
+          type: string
+        phoneNumber:
+          type: string
+      required: [dealId, slots, phoneNumber]
+
+    BookingListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Booking"
+        pagination:
+          $ref: "#/components/schemas/Pagination"
+      required: [data, pagination]
+
+    User:
+      type: object
+      properties:
+        id:
+          type: number
+        email:
+          type: string
+        phone:
+          type: string
+          nullable: true
+        name:
+          type: string
+        role:
+          type: string
+        loyaltyTier:
+          $ref: "#/components/schemas/LoyaltyTier"
+        loyaltyPoints:
+          type: number
+        subscriptionCategories:
+          type: array
+          items:
+            type: string
+        neighborhoodPref:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - email
+        - name
+        - role
+        - loyaltyTier
+        - loyaltyPoints
+        - subscriptionCategories
+        - createdAt
+
+    UpdateUserRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        phone:
+          type: string
+        subscriptionCategories:
+          type: array
+          items:
+            type: string
+        neighborhoodPref:
+          type: string
+        latitude:
+          type: string
+        longitude:
+          type: string
+        pushToken:
+          type: string
+
+    Rating:
+      type: object
+      properties:
+        id:
+          type: number
+        bookingId:
+          type: number
+        userId:
+          type: number
+        venueId:
+          type: number
+        dealId:
+          type: number
+        score:
+          type: number
+        comment:
+          type: string
+          nullable: true
+        response:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - bookingId
+        - userId
+        - venueId
+        - dealId
+        - score
+        - createdAt
+
+    CreateRatingRequest:
+      type: object
+      properties:
+        bookingId:
+          type: number
+        score:
+          type: number
+        comment:
+          type: string
+      required: [bookingId, score]
+
+    RatingListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Rating"
+        pagination:
+          $ref: "#/components/schemas/Pagination"
+      required: [data, pagination]
 

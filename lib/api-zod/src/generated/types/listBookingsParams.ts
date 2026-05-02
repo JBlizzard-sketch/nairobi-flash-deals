@@ -5,7 +5,10 @@
  * Nairobi Flash Deals API — premium same-day deal platform for upscale venues
  * OpenAPI spec version: 0.2.0
  */
+import type { BookingStatus } from "./bookingStatus";
 
-export interface HealthStatus {
-  status: string;
-}
+export type ListBookingsParams = {
+  status?: BookingStatus;
+  limit?: number;
+  offset?: number;
+};
