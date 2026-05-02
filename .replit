@@ -1,4 +1,4 @@
-modules = ["nodejs-24"]
+modules = ["nodejs-24", "postgresql-16"]
 
 [deployment]
 router = "application"
@@ -56,3 +56,6 @@ externalPort = 3000
 [userenv.shared]
 MPESA_ENV = "sandbox"
 MPESA_CALLBACK_URL = "https://af4b8ca7-29f7-4d8a-b473-31a1574a35d2-00-8938d7t3cgqx.picard.replit.dev/api/payments/callback"
+
+[nix]
+channel = "stable-25_05"
