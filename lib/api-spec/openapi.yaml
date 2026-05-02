@@ -1392,6 +1392,46 @@ components:
           $ref: "#/components/schemas/Pagination"
       required: [data, pagination]
 
+    DailyBookingEntry:
+      type: object
+      properties:
+        date:
+          type: string
+        label:
+          type: string
+        bookings:
+          type: number
+        slots:
+          type: number
+        revenue:
+          type: number
+      required: [date, label, bookings, slots, revenue]
+
+    DealPerformanceEntry:
+      type: object
+      properties:
+        id:
+          type: number
+        title:
+          type: string
+        category:
+          type: string
+        bookedSlots:
+          type: number
+        totalSlots:
+          type: number
+        viewCount:
+          type: number
+        dealPrice:
+          type: number
+        fillRate:
+          type: number
+        revenue:
+          type: number
+        bookingCount:
+          type: number
+      required: [id, title, category, bookedSlots, totalSlots, viewCount, dealPrice, fillRate, revenue, bookingCount]
+
     VenueAnalytics:
       type: object
       properties:
@@ -1407,12 +1447,22 @@ components:
           type: number
         totalRevenue:
           type: number
-        topDealCategory:
-          type: string
-        bestDay:
-          type: string
-        bestHour:
+        commissionEarned:
           type: number
+        totalReviews:
+          type: number
+        dailyBookings:
+          type: array
+          items:
+            $ref: "#/components/schemas/DailyBookingEntry"
+        ratingDistribution:
+          type: object
+          additionalProperties:
+            type: number
+        dealPerformance:
+          type: array
+          items:
+            $ref: "#/components/schemas/DealPerformanceEntry"
         recentDeals:
           type: array
           items:
@@ -1424,6 +1474,11 @@ components:
         - fillRate
         - averageRating
         - totalRevenue
+        - commissionEarned
+        - totalReviews
+        - dailyBookings
+        - ratingDistribution
+        - dealPerformance
         - recentDeals
 
     Deal:
