@@ -14,6 +14,62 @@ export interface Error {
   code?: string;
 }
 
+export interface RegisterRequest {
+  /** E.164 format — +254XXXXXXXXX */
+  phone: string;
+  name: string;
+  email?: string;
+}
+
+export interface LoginRequest {
+  /** E.164 format — +254XXXXXXXXX */
+  phone: string;
+}
+
+export interface VerifyOtpRequest {
+  phone: string;
+  /**
+   * @minLength 6
+   * @maxLength 6
+   */
+  otp: string;
+}
+
+export interface OtpSentResponse {
+  message: string;
+  phone: string;
+  /** Only present in development mode */
+  otp?: string;
+}
+
+export type LoyaltyTier = (typeof LoyaltyTier)[keyof typeof LoyaltyTier];
+
+export const LoyaltyTier = {
+  bronze: "bronze",
+  silver: "silver",
+  gold: "gold",
+  platinum: "platinum",
+} as const;
+
+export interface User {
+  id: number;
+  email: string;
+  phone?: string | null;
+  name: string;
+  role: string;
+  loyaltyTier: LoyaltyTier;
+  loyaltyPoints: number;
+  subscriptionCategories: string[];
+  neighborhoodPref?: string | null;
+  createdAt: string;
+}
+
+export interface AuthResponse {
+  /** JWT bearer token — valid for 7 days */
+  token: string;
+  user: User;
+}
+
 export interface Pagination {
   total: number;
   limit: number;
@@ -89,15 +145,6 @@ export const BookingStatus = {
   completed: "completed",
   cancelled: "cancelled",
   refunded: "refunded",
-} as const;
-
-export type LoyaltyTier = (typeof LoyaltyTier)[keyof typeof LoyaltyTier];
-
-export const LoyaltyTier = {
-  bronze: "bronze",
-  silver: "silver",
-  gold: "gold",
-  platinum: "platinum",
 } as const;
 
 export interface Venue {
@@ -252,19 +299,6 @@ export interface BookingListResponse {
   pagination: Pagination;
 }
 
-export interface User {
-  id: number;
-  email: string;
-  phone?: string | null;
-  name: string;
-  role: string;
-  loyaltyTier: LoyaltyTier;
-  loyaltyPoints: number;
-  subscriptionCategories: string[];
-  neighborhoodPref?: string | null;
-  createdAt: string;
-}
-
 export interface UpdateUserRequest {
   name?: string;
   phone?: string;
@@ -307,6 +341,15 @@ export type BadRequestResponse = Error;
  * Resource not found
  */
 export type NotFoundResponse = Error;
+
+/**
+ * Missing or invalid auth token
+ */
+export type UnauthorizedResponse = Error;
+
+export type Logout200 = {
+  message: string;
+};
 
 export type ListVenuesParams = {
   category?: VenueCategory;

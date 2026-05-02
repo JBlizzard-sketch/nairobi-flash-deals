@@ -48,10 +48,20 @@ Auto-push script: `scripts/github-push.sh`
 ## API Routes (artifacts/api-server/src/routes/)
 
 - `health.ts` — GET /api/healthz
+- `auth.ts` — register / login (OTP) / verify / me / logout (JWT HS256, 7-day)
 - `venues.ts` — CRUD + approval + analytics
 - `deals.ts` — CRUD + publish/cancel + trending feed
 - `bookings.ts` — create (with slot reservation) + cancel + check-in
 - `ratings.ts` — submit + list by venue
+
+## Auth Architecture
+
+- Phone-first (E.164: +254XXXXXXXXX), email optional
+- OTP: 6-digit, 5 min TTL, max 3 attempts, stored in `otp_codes` table
+- JWT: HS256 signed with `SESSION_SECRET`, 7-day expiry
+- Dev mode: OTP returned in API response for easy testing
+- SMS delivery wired in Phase 10 (AfricasTalking/Twilio)
+- Middleware: `requireAuth` (strict) + `optionalAuth` (flexible)
 
 ## Roadmap
 
@@ -63,8 +73,8 @@ Auto-push script: `scripts/github-push.sh`
 | 4 | Venue management CRUD + admin approval | ✅ Done |
 | 5 | Flash deal lifecycle state machine | ✅ Done |
 | 6 | Booking flow with slot reservation | ✅ Done |
-| 7 | Customer auth + session management | ⏳ Next |
-| 8 | Mpesa Daraja payment integration | ⏳ Planned |
+| 7 | Customer auth + session management | ✅ Done |
+| 8 | Mpesa Daraja payment integration | ⏳ Next |
 | 9 | WhatsApp Business bot (deal posting) | ⏳ Planned |
 | 10 | Push notification service (geo-aware) | ⏳ Planned |
 | 11 | Next.js frontend — customer app | ⏳ Planned |

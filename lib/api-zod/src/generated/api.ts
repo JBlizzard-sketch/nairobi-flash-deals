@@ -16,6 +16,106 @@ export const HealthCheckResponse = zod.object({
 });
 
 /**
+ * Creates account and sends OTP. In development the OTP is returned in the response.
+ * @summary Register with phone number
+ */
+export const RegisterBody = zod.object({
+  phone: zod.string().describe("E.164 format — +254XXXXXXXXX"),
+  name: zod.string(),
+  email: zod.string().email().optional(),
+});
+
+/**
+ * Sends OTP to registered phone. In development the OTP is returned in the response.
+ * @summary Login with phone number
+ */
+export const LoginBody = zod.object({
+  phone: zod.string().describe("E.164 format — +254XXXXXXXXX"),
+});
+
+export const LoginResponse = zod.object({
+  message: zod.string(),
+  phone: zod.string(),
+  otp: zod.string().optional().describe("Only present in development mode"),
+});
+
+/**
+ * @summary Verify OTP and receive JWT token
+ */
+export const verifyOtpBodyOtpMin = 6;
+export const verifyOtpBodyOtpMax = 6;
+
+export const VerifyOtpBody = zod.object({
+  phone: zod.string(),
+  otp: zod.string().min(verifyOtpBodyOtpMin).max(verifyOtpBodyOtpMax),
+});
+
+export const VerifyOtpResponse = zod.object({
+  token: zod.string().describe("JWT bearer token — valid for 7 days"),
+  user: zod.object({
+    id: zod.number(),
+    email: zod.string(),
+    phone: zod.string().nullish(),
+    name: zod.string(),
+    role: zod.string(),
+    loyaltyTier: zod.enum(["bronze", "silver", "gold", "platinum"]),
+    loyaltyPoints: zod.number(),
+    subscriptionCategories: zod.array(zod.string()),
+    neighborhoodPref: zod.string().nullish(),
+    createdAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary Get current authenticated user
+ */
+export const GetAuthMeResponse = zod.object({
+  id: zod.number(),
+  email: zod.string(),
+  phone: zod.string().nullish(),
+  name: zod.string(),
+  role: zod.string(),
+  loyaltyTier: zod.enum(["bronze", "silver", "gold", "platinum"]),
+  loyaltyPoints: zod.number(),
+  subscriptionCategories: zod.array(zod.string()),
+  neighborhoodPref: zod.string().nullish(),
+  createdAt: zod.coerce.date(),
+});
+
+/**
+ * @summary Update current user profile
+ */
+export const UpdateAuthMeBody = zod.object({
+  name: zod.string().optional(),
+  phone: zod.string().optional(),
+  subscriptionCategories: zod.array(zod.string()).optional(),
+  neighborhoodPref: zod.string().optional(),
+  latitude: zod.string().optional(),
+  longitude: zod.string().optional(),
+  pushToken: zod.string().optional(),
+});
+
+export const UpdateAuthMeResponse = zod.object({
+  id: zod.number(),
+  email: zod.string(),
+  phone: zod.string().nullish(),
+  name: zod.string(),
+  role: zod.string(),
+  loyaltyTier: zod.enum(["bronze", "silver", "gold", "platinum"]),
+  loyaltyPoints: zod.number(),
+  subscriptionCategories: zod.array(zod.string()),
+  neighborhoodPref: zod.string().nullish(),
+  createdAt: zod.coerce.date(),
+});
+
+/**
+ * @summary Logout (client should discard token)
+ */
+export const LogoutResponse = zod.object({
+  message: zod.string(),
+});
+
+/**
  * @summary List approved venues
  */
 export const ListVenuesQueryParams = zod.object({
