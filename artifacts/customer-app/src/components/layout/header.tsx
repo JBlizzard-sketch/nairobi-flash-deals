@@ -1,10 +1,11 @@
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
-import { User, Bell, LogIn } from "lucide-react";
+import { User, LayoutDashboard } from "lucide-react";
 
 export function Header() {
   const [location] = useLocation();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
+  const isVenueManager = user && (user as { role?: string }).role === "venue_manager";
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -15,6 +16,15 @@ export function Header() {
         <nav className="flex items-center gap-4">
           {isAuthenticated ? (
             <>
+              {isVenueManager && (
+                <Link
+                  href="/venue"
+                  className={`text-sm font-medium ${location.startsWith("/venue") ? "text-primary" : "text-muted-foreground hover:text-foreground"}`}
+                >
+                  <span className="hidden sm:inline">Venue</span>
+                  <LayoutDashboard className="h-5 w-5 sm:hidden" />
+                </Link>
+              )}
               <Link href="/profile" className="text-muted-foreground hover:text-foreground">
                 <User className="h-5 w-5" />
                 <span className="sr-only">Profile</span>

@@ -339,6 +339,7 @@ export interface User {
   phone?: string | null;
   name: string;
   role: string;
+  managedVenueId?: number | null;
   loyaltyTier: LoyaltyTier;
   loyaltyPoints: number;
   subscriptionCategories: string[];

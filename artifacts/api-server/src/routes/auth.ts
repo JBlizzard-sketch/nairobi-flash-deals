@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
 import { db } from "@workspace/db";
 import { usersTable, otpTable } from "@workspace/db/schema";
-import { eq, and, gt } from "drizzle-orm";
+import { eq, and, gt, desc } from "drizzle-orm";
 import { z } from "zod";
 import { randomInt } from "crypto";
 import { signToken } from "../lib/jwt";
@@ -119,7 +119,7 @@ router.post("/auth/verify", async (req, res) => {
         gt(otpTable.expiresAt, now),
       ),
     )
-    .orderBy(otpTable.createdAt)
+    .orderBy(desc(otpTable.createdAt))
     .limit(1);
 
   if (!otpRecord) {
@@ -155,6 +155,7 @@ router.post("/auth/verify", async (req, res) => {
       name: user.name,
       email: user.email,
       role: user.role,
+      managedVenueId: user.managedVenueId,
       loyaltyTier: user.loyaltyTier,
       loyaltyPoints: user.loyaltyPoints,
       createdAt: user.createdAt,
@@ -179,6 +180,7 @@ router.get("/auth/me", requireAuth, async (req, res) => {
     name: user.name,
     email: user.email,
     role: user.role,
+    managedVenueId: user.managedVenueId,
     loyaltyTier: user.loyaltyTier,
     loyaltyPoints: user.loyaltyPoints,
     subscriptionCategories: user.subscriptionCategories,

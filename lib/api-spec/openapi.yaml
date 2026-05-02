@@ -1584,6 +1584,9 @@ components:
           type: string
         role:
           type: string
+        managedVenueId:
+          type: number
+          nullable: true
         loyaltyTier:
           $ref: "#/components/schemas/LoyaltyTier"
         loyaltyPoints:

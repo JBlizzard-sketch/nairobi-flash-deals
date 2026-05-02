@@ -13,6 +13,7 @@ const listQuerySchema = z.object({
   status: z
     .enum(["pending_payment", "confirmed", "checked_in", "completed", "cancelled", "refunded"])
     .optional(),
+  venueId: z.coerce.number().optional(),
   limit: z.coerce.number().min(1).max(100).default(20),
   offset: z.coerce.number().min(0).default(0),
 });
@@ -25,12 +26,16 @@ router.get("/bookings", async (req, res) => {
   const query = listQuerySchema.parse(req.query);
   const conditions = [];
   if (query.status) conditions.push(eq(bookingsTable.status, query.status));
+  if (query.venueId) conditions.push(eq(bookingsTable.venueId, query.venueId));
 
-  const [data, [{ count }]] = await Promise.all([
+  const [rows, [{ count }]] = await Promise.all([
     db
-      .select()
+      .select({ booking: bookingsTable, deal: dealsTable, venue: venuesTable })
       .from(bookingsTable)
+      .leftJoin(dealsTable, eq(bookingsTable.dealId, dealsTable.id))
+      .leftJoin(venuesTable, eq(bookingsTable.venueId, venuesTable.id))
       .where(conditions.length ? and(...conditions) : undefined)
+      .orderBy(sql`${bookingsTable.createdAt} DESC`)
       .limit(query.limit)
       .offset(query.offset),
     db
@@ -40,7 +45,7 @@ router.get("/bookings", async (req, res) => {
   ]);
 
   res.json({
-    data: data.map((b) => ({ ...b, deal: null, venue: null })),
+    data: rows.map(({ booking, deal, venue }) => ({ ...booking, deal, venue })),
     pagination: { total: Number(count), limit: query.limit, offset: query.offset },
   });
 });

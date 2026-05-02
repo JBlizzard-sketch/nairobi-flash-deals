@@ -1,4 +1,4 @@
-import { pgTable, text, serial, timestamp, pgEnum, boolean } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, timestamp, pgEnum, boolean, integer } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -20,6 +20,7 @@ export const usersTable = pgTable("users", {
   latitude: text("latitude"),
   longitude: text("longitude"),
   neighborhoodPref: text("neighborhood_pref"),
+  managedVenueId: integer("managed_venue_id"),
   pushToken: text("push_token"),
   isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at").notNull().defaultNow(),
