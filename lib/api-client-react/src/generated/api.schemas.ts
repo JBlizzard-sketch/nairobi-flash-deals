@@ -387,6 +387,29 @@ export interface VenueListResponse {
   pagination: Pagination;
 }
 
+export interface DailyBookingEntry {
+  date: string;
+  label: string;
+  bookings: number;
+  slots: number;
+  revenue: number;
+}
+
+export interface DealPerformanceEntry {
+  id: number;
+  title: string;
+  category: string;
+  bookedSlots: number;
+  totalSlots: number;
+  viewCount: number;
+  dealPrice: number;
+  fillRate: number;
+  revenue: number;
+  bookingCount: number;
+}
+
+export type VenueAnalyticsRatingDistribution = { [key: string]: number };
+
 export interface VenueAnalytics {
   venueId: number;
   totalDeals: number;
@@ -394,9 +417,11 @@ export interface VenueAnalytics {
   fillRate: number;
   averageRating: number;
   totalRevenue: number;
-  topDealCategory?: string;
-  bestDay?: string;
-  bestHour?: number;
+  commissionEarned: number;
+  totalReviews: number;
+  dailyBookings: DailyBookingEntry[];
+  ratingDistribution: VenueAnalyticsRatingDistribution;
+  dealPerformance: DealPerformanceEntry[];
   recentDeals: Deal[];
 }
 

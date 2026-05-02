@@ -13,6 +13,7 @@ import Auth from "@/pages/auth";
 import VenueDashboard from "@/pages/venue/dashboard";
 import PostDeal from "@/pages/venue/post-deal";
 import VenueBookings from "@/pages/venue/venue-bookings";
+import VenueAnalytics from "@/pages/venue/analytics";
 
 const queryClient = new QueryClient();
 
@@ -30,6 +31,7 @@ function Router() {
           <Route path="/venue" component={VenueDashboard} />
           <Route path="/venue/post-deal" component={PostDeal} />
           <Route path="/venue/bookings" component={VenueBookings} />
+          <Route path="/venue/analytics" component={VenueAnalytics} />
           <Route component={NotFound} />
         </Switch>
       </main>

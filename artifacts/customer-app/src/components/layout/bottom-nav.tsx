@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { Home, Ticket, User, LayoutDashboard } from "lucide-react";
+import { Home, Ticket, User, LayoutDashboard, BarChart3 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
 
@@ -10,7 +10,7 @@ export function BottomNav() {
 
   return (
     <div className="fixed bottom-0 left-0 z-50 w-full border-t bg-background md:hidden">
-      <div className={cn("grid h-16 items-center justify-center", isVenueManager ? "grid-cols-4" : "grid-cols-3")}>
+      <div className={cn("grid h-16 items-center justify-center", isVenueManager ? "grid-cols-5" : "grid-cols-3")}>
         <Link href="/" className={cn("flex flex-col items-center justify-center gap-1", location === "/" ? "text-primary" : "text-muted-foreground")}>
           <Home className="h-5 w-5" />
           <span className="text-[10px] font-medium">Deals</span>
@@ -20,9 +20,15 @@ export function BottomNav() {
           <span className="text-[10px] font-medium">Bookings</span>
         </Link>
         {isVenueManager && (
-          <Link href="/venue" className={cn("flex flex-col items-center justify-center gap-1", location.startsWith("/venue") ? "text-primary" : "text-muted-foreground")}>
+          <Link href="/venue" className={cn("flex flex-col items-center justify-center gap-1", location === "/venue" || location.startsWith("/venue/post-deal") || location.startsWith("/venue/bookings") ? "text-primary" : "text-muted-foreground")}>
             <LayoutDashboard className="h-5 w-5" />
             <span className="text-[10px] font-medium">Venue</span>
+          </Link>
+        )}
+        {isVenueManager && (
+          <Link href="/venue/analytics" className={cn("flex flex-col items-center justify-center gap-1", location.startsWith("/venue/analytics") ? "text-primary" : "text-muted-foreground")}>
+            <BarChart3 className="h-5 w-5" />
+            <span className="text-[10px] font-medium">Analytics</span>
           </Link>
         )}
         <Link href="/profile" className={cn("flex flex-col items-center justify-center gap-1", location.startsWith("/profile") ? "text-primary" : "text-muted-foreground")}>

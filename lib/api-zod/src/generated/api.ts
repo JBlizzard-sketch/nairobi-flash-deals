@@ -372,9 +372,32 @@ export const GetVenueAnalyticsResponse = zod.object({
   fillRate: zod.number(),
   averageRating: zod.number(),
   totalRevenue: zod.number(),
-  topDealCategory: zod.string().optional(),
-  bestDay: zod.string().optional(),
-  bestHour: zod.number().optional(),
+  commissionEarned: zod.number(),
+  totalReviews: zod.number(),
+  dailyBookings: zod.array(
+    zod.object({
+      date: zod.string(),
+      label: zod.string(),
+      bookings: zod.number(),
+      slots: zod.number(),
+      revenue: zod.number(),
+    }),
+  ),
+  ratingDistribution: zod.record(zod.string(), zod.number()),
+  dealPerformance: zod.array(
+    zod.object({
+      id: zod.number(),
+      title: zod.string(),
+      category: zod.string(),
+      bookedSlots: zod.number(),
+      totalSlots: zod.number(),
+      viewCount: zod.number(),
+      dealPrice: zod.number(),
+      fillRate: zod.number(),
+      revenue: zod.number(),
+      bookingCount: zod.number(),
+    }),
+  ),
   recentDeals: zod.array(
     zod.object({
       id: zod.number(),
