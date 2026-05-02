@@ -548,6 +548,14 @@ export type VerifyWhatsAppWebhookParams = {
   "hub.challenge"?: string;
 };
 
+export type ListDealRatingsParams = {
+  limit?: number;
+};
+
 export type ListVenueRatingsParams = {
   limit?: number;
+};
+
+export type RespondToRatingBody = {
+  response: string;
 };

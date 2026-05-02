@@ -834,6 +834,52 @@ paths:
         "400":
           $ref: "#/components/responses/BadRequest"
 
+  /ratings/booking/{bookingId}:
+    get:
+      operationId: getBookingRating
+      tags: [ratings]
+      summary: Get rating for a specific booking
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: bookingId
+          required: true
+          schema:
+            type: number
+      responses:
+        "200":
+          description: Rating for the booking
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Rating"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /ratings/deal/{dealId}:
+    get:
+      operationId: listDealRatings
+      tags: [ratings]
+      summary: List ratings for a deal
+      parameters:
+        - in: path
+          name: dealId
+          required: true
+          schema:
+            type: number
+        - in: query
+          name: limit
+          schema:
+            type: number
+      responses:
+        "200":
+          description: Deal ratings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RatingListResponse"
+
   /ratings/venue/{venueId}:
     get:
       operationId: listVenueRatings
@@ -856,6 +902,35 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/RatingListResponse"
+
+  /ratings/{id}/respond:
+    patch:
+      operationId: respondToRating
+      tags: [ratings]
+      summary: Venue manager responds to a rating
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                response:
+                  type: string
+              required: [response]
+      responses:
+        "200":
+          description: Rating with response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Rating"
+        "404":
+          $ref: "#/components/responses/NotFound"
 
 components:
   securitySchemes:

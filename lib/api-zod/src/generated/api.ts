@@ -2103,6 +2103,57 @@ export const CreateRatingBody = zod.object({
 });
 
 /**
+ * @summary Get rating for a specific booking
+ */
+export const GetBookingRatingParams = zod.object({
+  bookingId: zod.coerce.number(),
+});
+
+export const GetBookingRatingResponse = zod.object({
+  id: zod.number(),
+  bookingId: zod.number(),
+  userId: zod.number(),
+  venueId: zod.number(),
+  dealId: zod.number(),
+  score: zod.number(),
+  comment: zod.string().nullish(),
+  response: zod.string().nullish(),
+  createdAt: zod.coerce.date(),
+});
+
+/**
+ * @summary List ratings for a deal
+ */
+export const ListDealRatingsParams = zod.object({
+  dealId: zod.coerce.number(),
+});
+
+export const ListDealRatingsQueryParams = zod.object({
+  limit: zod.coerce.number().optional(),
+});
+
+export const ListDealRatingsResponse = zod.object({
+  data: zod.array(
+    zod.object({
+      id: zod.number(),
+      bookingId: zod.number(),
+      userId: zod.number(),
+      venueId: zod.number(),
+      dealId: zod.number(),
+      score: zod.number(),
+      comment: zod.string().nullish(),
+      response: zod.string().nullish(),
+      createdAt: zod.coerce.date(),
+    }),
+  ),
+  pagination: zod.object({
+    total: zod.number(),
+    limit: zod.number(),
+    offset: zod.number(),
+  }),
+});
+
+/**
  * @summary List ratings for a venue
  */
 export const ListVenueRatingsParams = zod.object({
@@ -2132,4 +2183,27 @@ export const ListVenueRatingsResponse = zod.object({
     limit: zod.number(),
     offset: zod.number(),
   }),
+});
+
+/**
+ * @summary Venue manager responds to a rating
+ */
+export const RespondToRatingParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const RespondToRatingBody = zod.object({
+  response: zod.string(),
+});
+
+export const RespondToRatingResponse = zod.object({
+  id: zod.number(),
+  bookingId: zod.number(),
+  userId: zod.number(),
+  venueId: zod.number(),
+  dealId: zod.number(),
+  score: zod.number(),
+  comment: zod.string().nullish(),
+  response: zod.string().nullish(),
+  createdAt: zod.coerce.date(),
 });

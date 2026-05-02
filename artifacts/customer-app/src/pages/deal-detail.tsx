@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useLocation } from "wouter";
-import { useGetDeal, useCreateBooking } from "@workspace/api-client-react";
+import { useGetDeal, useCreateBooking, useListVenueRatings } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -32,6 +32,8 @@ export default function DealDetail() {
   const dealId = id ? parseInt(id, 10) : 0;
   const { data: deal, isLoading, error } = useGetDeal(dealId);
   const createBooking = useCreateBooking();
+  const venueId = deal?.venueId ?? 0;
+  const { data: ratingsData } = useListVenueRatings(venueId, { limit: 5 }, { query: { enabled: !!venueId } });
 
   const [timeLeft, setTimeLeft] = useState<number>(0);
   const [slots, setSlots] = useState(1);
@@ -300,6 +302,54 @@ export default function DealDetail() {
             <span className="text-sm">{deal.venue?.address}</span>
           </div>
         </div>
+
+        {ratingsData && ratingsData.data.length > 0 && (
+          <>
+            <Separator />
+            <div className="space-y-4 pb-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xl font-bold">Guest Reviews</h3>
+                <div className="flex items-center gap-1.5">
+                  <Star className="h-4 w-4 fill-primary text-primary" />
+                  <span className="font-bold">
+                    {Number(deal.venue?.averageRating ?? 0).toFixed(1)}
+                  </span>
+                  <span className="text-muted-foreground text-sm">
+                    ({ratingsData.pagination.total})
+                  </span>
+                </div>
+              </div>
+              <div className="space-y-3">
+                {ratingsData.data.map((r) => (
+                  <div key={r.id} className="border rounded-xl p-4 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex gap-0.5">
+                        {[1, 2, 3, 4, 5].map((n) => (
+                          <Star
+                            key={n}
+                            className={`h-4 w-4 ${n <= r.score ? "fill-primary text-primary" : "text-muted-foreground/30"}`}
+                          />
+                        ))}
+                      </div>
+                      <span className="text-xs text-muted-foreground">
+                        {new Date(r.createdAt).toLocaleDateString("en-KE", { month: "short", day: "numeric" })}
+                      </span>
+                    </div>
+                    {r.comment && (
+                      <p className="text-sm text-muted-foreground leading-relaxed">{r.comment}</p>
+                    )}
+                    {r.response && (
+                      <div className="bg-muted/60 rounded-lg px-3 py-2 text-xs text-muted-foreground border-l-2 border-primary/40">
+                        <span className="font-semibold text-foreground">Venue reply: </span>
+                        {r.response}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

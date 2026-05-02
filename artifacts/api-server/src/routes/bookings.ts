@@ -1,11 +1,12 @@
 import { Router, type IRouter } from "express";
 import { db } from "@workspace/db";
-import { bookingsTable, dealsTable, venuesTable, insertBookingSchema } from "@workspace/db/schema";
+import { bookingsTable, dealsTable, venuesTable, usersTable } from "@workspace/db/schema";
 import { eq, sql, and } from "drizzle-orm";
 import { z } from "zod";
 import { randomBytes } from "crypto";
 import { isDarajaConfigured, initiateSTKPush } from "../lib/daraja";
 import { logger } from "../lib/logger";
+import { awardLoyaltyPoints } from "./ratings";
 
 const router: IRouter = Router();
 
@@ -150,6 +151,10 @@ router.post("/bookings", async (req, res) => {
       .where(eq(bookingsTable.id, booking.id));
     paymentInfo = { paymentStatus: "simulated", message: "Mpesa not configured — booking auto-confirmed." };
     booking.status = "confirmed";
+    // Award 100 loyalty points per slot on confirmation
+    if (body.userId) {
+      await awardLoyaltyPoints(body.userId, 100 * body.slots);
+    }
   }
 
   res.status(201).json({ ...booking, deal: null, venue: null, ...paymentInfo });
@@ -195,6 +200,10 @@ router.post("/bookings/:id/checkin", async (req, res) => {
   if (!booking) {
     res.status(404).json({ message: "Booking not found" });
     return;
+  }
+  // Award 25 loyalty points on check-in
+  if (booking.userId) {
+    await awardLoyaltyPoints(booking.userId, 25);
   }
   res.json({ ...booking, deal: null, venue: null });
 });

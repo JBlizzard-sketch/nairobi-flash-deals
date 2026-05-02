@@ -1,17 +1,114 @@
-import { useListBookings } from "@workspace/api-client-react";
+import { useState } from "react";
+import { useListBookings, useCreateRating, getListBookingsQueryKey } from "@workspace/api-client-react";
 import { useAuth } from "@/hooks/use-auth";
 import { Redirect } from "wouter";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Ticket, MapPin, Calendar, Clock } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Ticket, MapPin, Calendar, Clock, Star } from "lucide-react";
 import { format } from "date-fns";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { useToast } from "@/hooks/use-toast";
+import { useQueryClient } from "@tanstack/react-query";
+
+type RatingTarget = { bookingId: number; dealTitle: string; venueName: string };
+
+function StarSelector({ value, onChange }: { value: number; onChange: (v: number) => void }) {
+  const [hovered, setHovered] = useState(0);
+  return (
+    <div className="flex gap-1">
+      {[1, 2, 3, 4, 5].map((n) => (
+        <button
+          key={n}
+          type="button"
+          className="p-1 focus:outline-none"
+          onMouseEnter={() => setHovered(n)}
+          onMouseLeave={() => setHovered(0)}
+          onClick={() => onChange(n)}
+        >
+          <Star
+            className={`h-8 w-8 transition-colors ${
+              n <= (hovered || value)
+                ? "fill-primary text-primary"
+                : "text-muted-foreground"
+            }`}
+          />
+        </button>
+      ))}
+    </div>
+  );
+}
+
+const STATUS_LABELS: Record<string, string> = {
+  pending_payment: "Pending",
+  confirmed: "Confirmed",
+  checked_in: "Checked In",
+  completed: "Completed",
+  cancelled: "Cancelled",
+  refunded: "Refunded",
+};
+
+const STATUS_VARIANTS: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
+  confirmed: "default",
+  checked_in: "secondary",
+  completed: "outline",
+  cancelled: "destructive",
+  refunded: "destructive",
+  pending_payment: "outline",
+};
 
 export default function Bookings() {
-  const { isAuthenticated, isLoading: authLoading } = useAuth();
-  const { data, isLoading } = useListBookings({ limit: 50 });
+  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
+  const params = { limit: 50 };
+  const { data, isLoading } = useListBookings(params);
+  const createRating = useCreateRating();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  const [ratingTarget, setRatingTarget] = useState<RatingTarget | null>(null);
+  const [score, setScore] = useState(5);
+  const [comment, setComment] = useState("");
+  const [ratedIds, setRatedIds] = useState<Set<number>>(new Set());
 
   if (authLoading) return null;
   if (!isAuthenticated) return <Redirect to="/auth" />;
+
+  const canRate = (status: string, bookingId: number) =>
+    ["checked_in", "completed", "confirmed"].includes(status) &&
+    !ratedIds.has(bookingId);
+
+  const handleRate = () => {
+    if (!ratingTarget) return;
+    createRating.mutate(
+      { data: { bookingId: ratingTarget.bookingId, score, comment: comment || undefined } },
+      {
+        onSuccess: () => {
+          setRatedIds((prev) => new Set(prev).add(ratingTarget.bookingId));
+          setRatingTarget(null);
+          setScore(5);
+          setComment("");
+          queryClient.invalidateQueries({ queryKey: getListBookingsQueryKey(params) });
+          toast({
+            title: "Thanks for your review!",
+            description: `+50 loyalty points awarded to your account.`,
+          });
+        },
+        onError: (err: Error) => {
+          toast({ title: "Rating failed", description: err.message, variant: "destructive" });
+        },
+      }
+    );
+  };
+
+  const userId = (user as { id?: number } | undefined)?.id;
 
   return (
     <div className="container py-6 space-y-6 min-h-screen pb-24">
@@ -23,48 +120,79 @@ export default function Bookings() {
       {isLoading ? (
         <div className="space-y-4">
           {[1, 2, 3].map((i) => (
-            <Card key={i} className="animate-pulse">
-              <CardContent className="h-32 bg-muted rounded-lg" />
-            </Card>
+            <div key={i} className="h-40 bg-muted rounded-xl animate-pulse" />
           ))}
         </div>
       ) : data?.data && data.data.length > 0 ? (
         <div className="grid gap-4">
-          {data.data.map((booking) => (
-            <Card key={booking.id} className="overflow-hidden">
-              <div className="bg-primary/10 p-4 border-b flex justify-between items-center">
-                <div className="flex items-center gap-2">
-                  <Ticket className="h-5 w-5 text-primary" />
-                  <span className="font-mono text-xl font-bold tracking-widest">{booking.confirmationCode}</span>
-                </div>
-                <Badge variant={booking.status === 'confirmed' ? 'default' : 'secondary'} className="uppercase text-[10px]">
-                  {booking.status.replace('_', ' ')}
-                </Badge>
-              </div>
-              <CardContent className="p-4 space-y-3">
-                <div>
-                  <h3 className="font-bold text-lg">{booking.deal?.title}</h3>
-                  <p className="text-muted-foreground text-sm flex items-center gap-1 mt-1">
-                    <MapPin className="h-3.5 w-3.5" /> {booking.venue?.name}
-                  </p>
-                </div>
-                <div className="flex flex-wrap gap-4 text-sm bg-muted/50 p-3 rounded-md">
-                  <div className="flex items-center gap-1.5">
-                    <Calendar className="h-4 w-4 text-muted-foreground" />
-                    <span>{format(new Date(booking.createdAt), 'MMM d, yyyy')}</span>
+          {data.data
+            .filter((b) => !userId || b.userId === userId)
+            .map((booking) => (
+              <Card key={booking.id} className="overflow-hidden">
+                <div className="bg-primary/10 p-4 border-b flex justify-between items-center gap-3">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Ticket className="h-5 w-5 text-primary shrink-0" />
+                    <span className="font-mono text-xl font-bold tracking-widest truncate">
+                      {booking.confirmationCode}
+                    </span>
                   </div>
-                  <div className="flex items-center gap-1.5">
-                    <Clock className="h-4 w-4 text-muted-foreground" />
-                    <span>{format(new Date(booking.createdAt), 'h:mm a')}</span>
+                  <Badge
+                    variant={STATUS_VARIANTS[booking.status] ?? "outline"}
+                    className="uppercase text-[10px] shrink-0"
+                  >
+                    {STATUS_LABELS[booking.status] ?? booking.status}
+                  </Badge>
+                </div>
+                <CardContent className="p-4 space-y-3">
+                  <div>
+                    <h3 className="font-bold text-lg leading-tight">{booking.deal?.title}</h3>
+                    <p className="text-muted-foreground text-sm flex items-center gap-1 mt-1">
+                      <MapPin className="h-3.5 w-3.5" /> {booking.venue?.name}
+                    </p>
                   </div>
-                </div>
-                <div className="flex justify-between items-center pt-2 border-t text-sm font-medium">
-                  <span>{booking.slots} slot{booking.slots > 1 ? 's' : ''}</span>
-                  <span className="text-primary">KES {parseInt(booking.totalAmount).toLocaleString()} paid</span>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                  <div className="flex flex-wrap gap-4 text-sm bg-muted/50 p-3 rounded-md">
+                    <span className="flex items-center gap-1.5">
+                      <Calendar className="h-4 w-4 text-muted-foreground" />
+                      {format(new Date(booking.createdAt), "MMM d, yyyy")}
+                    </span>
+                    <span className="flex items-center gap-1.5">
+                      <Clock className="h-4 w-4 text-muted-foreground" />
+                      {format(new Date(booking.createdAt), "h:mm a")}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center pt-2 border-t">
+                    <span className="text-sm font-medium">
+                      {booking.slots} slot{booking.slots > 1 ? "s" : ""}
+                    </span>
+                    <span className="text-sm text-primary font-bold">
+                      KES {parseInt(booking.totalAmount).toLocaleString()} paid
+                    </span>
+                  </div>
+
+                  {ratedIds.has(booking.id) ? (
+                    <div className="flex items-center gap-1.5 text-sm text-muted-foreground pt-1">
+                      <Star className="h-4 w-4 fill-primary text-primary" />
+                      <span>Review submitted — +50 pts</span>
+                    </div>
+                  ) : canRate(booking.status, booking.id) ? (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full gap-2 mt-1"
+                      onClick={() =>
+                        setRatingTarget({
+                          bookingId: booking.id,
+                          dealTitle: booking.deal?.title ?? "Deal",
+                          venueName: booking.venue?.name ?? "",
+                        })
+                      }
+                    >
+                      <Star className="h-4 w-4" /> Rate your experience
+                    </Button>
+                  ) : null}
+                </CardContent>
+              </Card>
+            ))}
         </div>
       ) : (
         <div className="text-center py-20 space-y-4">
@@ -75,6 +203,50 @@ export default function Bookings() {
           <p className="text-muted-foreground">When you book a deal, it will appear here.</p>
         </div>
       )}
+
+      <Dialog open={!!ratingTarget} onOpenChange={(open) => !open && setRatingTarget(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Rate your experience</DialogTitle>
+            <DialogDescription>
+              {ratingTarget?.dealTitle} · {ratingTarget?.venueName}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-5 py-2">
+            <div className="space-y-2">
+              <p className="text-sm font-medium">How was it?</p>
+              <StarSelector value={score} onChange={setScore} />
+              <p className="text-xs text-muted-foreground">
+                {["", "Poor", "Fair", "Good", "Very good", "Excellent!"][score]}
+              </p>
+            </div>
+            <div className="space-y-2">
+              <p className="text-sm font-medium">Leave a comment (optional)</p>
+              <Textarea
+                placeholder="What did you enjoy? Any suggestions..."
+                rows={3}
+                maxLength={500}
+                value={comment}
+                onChange={(e) => setComment(e.target.value)}
+              />
+            </div>
+            <div className="bg-primary/5 rounded-lg px-4 py-2 text-sm text-muted-foreground">
+              You'll earn <span className="font-bold text-primary">+50 loyalty points</span> for submitting a review.
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              className="w-full"
+              disabled={createRating.isPending}
+              onClick={handleRate}
+            >
+              {createRating.isPending ? "Submitting..." : "Submit Review"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

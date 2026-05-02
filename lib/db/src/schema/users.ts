@@ -1,4 +1,4 @@
-import { pgTable, text, serial, timestamp, pgEnum, boolean, integer } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, timestamp, pgEnum, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -12,7 +12,7 @@ export const usersTable = pgTable("users", {
   name: text("name").notNull(),
   role: userRoleEnum("role").notNull().default("customer"),
   loyaltyTier: loyaltyTierEnum("loyalty_tier").notNull().default("bronze"),
-  loyaltyPoints: serial("loyalty_points").notNull(),
+  loyaltyPoints: integer("loyalty_points").notNull().default(0),
   subscriptionCategories: text("subscription_categories")
     .array()
     .notNull()

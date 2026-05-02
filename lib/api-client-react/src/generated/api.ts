@@ -33,6 +33,7 @@ import type {
   InitiatePaymentRequest,
   InitiatePaymentResponse,
   ListBookingsParams,
+  ListDealRatingsParams,
   ListDealsParams,
   ListVenueRatingsParams,
   ListVenuesParams,
@@ -54,6 +55,7 @@ import type {
   RegisterPushToken200,
   RegisterPushTokenBody,
   RegisterRequest,
+  RespondToRatingBody,
   TestNotificationResponse,
   UnauthorizedResponse,
   UpdateDealRequest,
@@ -3412,6 +3414,207 @@ export const useCreateRating = <
 };
 
 /**
+ * @summary Get rating for a specific booking
+ */
+export const getGetBookingRatingUrl = (bookingId: number) => {
+  return `/api/ratings/booking/${bookingId}`;
+};
+
+export const getBookingRating = async (
+  bookingId: number,
+  options?: RequestInit,
+): Promise<Rating> => {
+  return customFetch<Rating>(getGetBookingRatingUrl(bookingId), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetBookingRatingQueryKey = (bookingId: number) => {
+  return [`/api/ratings/booking/${bookingId}`] as const;
+};
+
+export const getGetBookingRatingQueryOptions = <
+  TData = Awaited<ReturnType<typeof getBookingRating>>,
+  TError = ErrorType<NotFoundResponse>,
+>(
+  bookingId: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getBookingRating>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetBookingRatingQueryKey(bookingId);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getBookingRating>>
+  > = ({ signal }) =>
+    getBookingRating(bookingId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!bookingId,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getBookingRating>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetBookingRatingQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getBookingRating>>
+>;
+export type GetBookingRatingQueryError = ErrorType<NotFoundResponse>;
+
+/**
+ * @summary Get rating for a specific booking
+ */
+
+export function useGetBookingRating<
+  TData = Awaited<ReturnType<typeof getBookingRating>>,
+  TError = ErrorType<NotFoundResponse>,
+>(
+  bookingId: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getBookingRating>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetBookingRatingQueryOptions(bookingId, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary List ratings for a deal
+ */
+export const getListDealRatingsUrl = (
+  dealId: number,
+  params?: ListDealRatingsParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/ratings/deal/${dealId}?${stringifiedParams}`
+    : `/api/ratings/deal/${dealId}`;
+};
+
+export const listDealRatings = async (
+  dealId: number,
+  params?: ListDealRatingsParams,
+  options?: RequestInit,
+): Promise<RatingListResponse> => {
+  return customFetch<RatingListResponse>(
+    getListDealRatingsUrl(dealId, params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getListDealRatingsQueryKey = (
+  dealId: number,
+  params?: ListDealRatingsParams,
+) => {
+  return [`/api/ratings/deal/${dealId}`, ...(params ? [params] : [])] as const;
+};
+
+export const getListDealRatingsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listDealRatings>>,
+  TError = ErrorType<unknown>,
+>(
+  dealId: number,
+  params?: ListDealRatingsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listDealRatings>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListDealRatingsQueryKey(dealId, params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listDealRatings>>> = ({
+    signal,
+  }) => listDealRatings(dealId, params, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!dealId,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof listDealRatings>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListDealRatingsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listDealRatings>>
+>;
+export type ListDealRatingsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List ratings for a deal
+ */
+
+export function useListDealRatings<
+  TData = Awaited<ReturnType<typeof listDealRatings>>,
+  TError = ErrorType<unknown>,
+>(
+  dealId: number,
+  params?: ListDealRatingsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listDealRatings>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListDealRatingsQueryOptions(dealId, params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
  * @summary List ratings for a venue
  */
 export const getListVenueRatingsUrl = (
@@ -3530,3 +3733,90 @@ export function useListVenueRatings<
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+/**
+ * @summary Venue manager responds to a rating
+ */
+export const getRespondToRatingUrl = (id: number) => {
+  return `/api/ratings/${id}/respond`;
+};
+
+export const respondToRating = async (
+  id: number,
+  respondToRatingBody: RespondToRatingBody,
+  options?: RequestInit,
+): Promise<Rating> => {
+  return customFetch<Rating>(getRespondToRatingUrl(id), {
+    ...options,
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(respondToRatingBody),
+  });
+};
+
+export const getRespondToRatingMutationOptions = <
+  TError = ErrorType<NotFoundResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof respondToRating>>,
+    TError,
+    { id: number; data: BodyType<RespondToRatingBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof respondToRating>>,
+  TError,
+  { id: number; data: BodyType<RespondToRatingBody> },
+  TContext
+> => {
+  const mutationKey = ["respondToRating"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof respondToRating>>,
+    { id: number; data: BodyType<RespondToRatingBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return respondToRating(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RespondToRatingMutationResult = NonNullable<
+  Awaited<ReturnType<typeof respondToRating>>
+>;
+export type RespondToRatingMutationBody = BodyType<RespondToRatingBody>;
+export type RespondToRatingMutationError = ErrorType<NotFoundResponse>;
+
+/**
+ * @summary Venue manager responds to a rating
+ */
+export const useRespondToRating = <
+  TError = ErrorType<NotFoundResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof respondToRating>>,
+    TError,
+    { id: number; data: BodyType<RespondToRatingBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof respondToRating>>,
+  TError,
+  { id: number; data: BodyType<RespondToRatingBody> },
+  TContext
+> => {
+  return useMutation(getRespondToRatingMutationOptions(options));
+};
