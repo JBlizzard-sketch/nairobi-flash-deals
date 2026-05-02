@@ -29,14 +29,20 @@ import type {
   DealListResponse,
   Error,
   HealthStatus,
+  InitiatePaymentRequest,
+  InitiatePaymentResponse,
   ListBookingsParams,
   ListDealsParams,
   ListVenueRatingsParams,
   ListVenuesParams,
   LoginRequest,
   Logout200,
+  MpesaCallback200,
+  MpesaCallbackBody,
   NotFoundResponse,
   OtpSentResponse,
+  PaymentQueryResponse,
+  QueryPaymentStatusBody,
   Rating,
   RatingListResponse,
   RegisterRequest,
@@ -2318,6 +2324,269 @@ export const useUpdateMe = <
   TContext
 > => {
   return useMutation(getUpdateMeMutationOptions(options));
+};
+
+/**
+ * Sends an M-Pesa STK Push prompt to the customer's phone.
+In dev/sandbox mode without Mpesa credentials configured,
+automatically confirms the booking (simulated payment).
+
+ * @summary Initiate Mpesa STK Push for a booking
+ */
+export const getInitiatePaymentUrl = () => {
+  return `/api/payments/initiate`;
+};
+
+export const initiatePayment = async (
+  initiatePaymentRequest: InitiatePaymentRequest,
+  options?: RequestInit,
+): Promise<InitiatePaymentResponse> => {
+  return customFetch<InitiatePaymentResponse>(getInitiatePaymentUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(initiatePaymentRequest),
+  });
+};
+
+export const getInitiatePaymentMutationOptions = <
+  TError = ErrorType<NotFoundResponse | Error>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof initiatePayment>>,
+    TError,
+    { data: BodyType<InitiatePaymentRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof initiatePayment>>,
+  TError,
+  { data: BodyType<InitiatePaymentRequest> },
+  TContext
+> => {
+  const mutationKey = ["initiatePayment"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof initiatePayment>>,
+    { data: BodyType<InitiatePaymentRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return initiatePayment(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type InitiatePaymentMutationResult = NonNullable<
+  Awaited<ReturnType<typeof initiatePayment>>
+>;
+export type InitiatePaymentMutationBody = BodyType<InitiatePaymentRequest>;
+export type InitiatePaymentMutationError = ErrorType<NotFoundResponse | Error>;
+
+/**
+ * @summary Initiate Mpesa STK Push for a booking
+ */
+export const useInitiatePayment = <
+  TError = ErrorType<NotFoundResponse | Error>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof initiatePayment>>,
+    TError,
+    { data: BodyType<InitiatePaymentRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof initiatePayment>>,
+  TError,
+  { data: BodyType<InitiatePaymentRequest> },
+  TContext
+> => {
+  return useMutation(getInitiatePaymentMutationOptions(options));
+};
+
+/**
+ * Receives STK Push result from Safaricom servers. Not for direct client use.
+ * @summary Daraja payment callback (called by Safaricom)
+ */
+export const getMpesaCallbackUrl = () => {
+  return `/api/payments/callback`;
+};
+
+export const mpesaCallback = async (
+  mpesaCallbackBody: MpesaCallbackBody,
+  options?: RequestInit,
+): Promise<MpesaCallback200> => {
+  return customFetch<MpesaCallback200>(getMpesaCallbackUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(mpesaCallbackBody),
+  });
+};
+
+export const getMpesaCallbackMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof mpesaCallback>>,
+    TError,
+    { data: BodyType<MpesaCallbackBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof mpesaCallback>>,
+  TError,
+  { data: BodyType<MpesaCallbackBody> },
+  TContext
+> => {
+  const mutationKey = ["mpesaCallback"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof mpesaCallback>>,
+    { data: BodyType<MpesaCallbackBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return mpesaCallback(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type MpesaCallbackMutationResult = NonNullable<
+  Awaited<ReturnType<typeof mpesaCallback>>
+>;
+export type MpesaCallbackMutationBody = BodyType<MpesaCallbackBody>;
+export type MpesaCallbackMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Daraja payment callback (called by Safaricom)
+ */
+export const useMpesaCallback = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof mpesaCallback>>,
+    TError,
+    { data: BodyType<MpesaCallbackBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof mpesaCallback>>,
+  TError,
+  { data: BodyType<MpesaCallbackBody> },
+  TContext
+> => {
+  return useMutation(getMpesaCallbackMutationOptions(options));
+};
+
+/**
+ * @summary Query STK Push payment status
+ */
+export const getQueryPaymentStatusUrl = () => {
+  return `/api/payments/query`;
+};
+
+export const queryPaymentStatus = async (
+  queryPaymentStatusBody: QueryPaymentStatusBody,
+  options?: RequestInit,
+): Promise<PaymentQueryResponse> => {
+  return customFetch<PaymentQueryResponse>(getQueryPaymentStatusUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(queryPaymentStatusBody),
+  });
+};
+
+export const getQueryPaymentStatusMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof queryPaymentStatus>>,
+    TError,
+    { data: BodyType<QueryPaymentStatusBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof queryPaymentStatus>>,
+  TError,
+  { data: BodyType<QueryPaymentStatusBody> },
+  TContext
+> => {
+  const mutationKey = ["queryPaymentStatus"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof queryPaymentStatus>>,
+    { data: BodyType<QueryPaymentStatusBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return queryPaymentStatus(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type QueryPaymentStatusMutationResult = NonNullable<
+  Awaited<ReturnType<typeof queryPaymentStatus>>
+>;
+export type QueryPaymentStatusMutationBody = BodyType<QueryPaymentStatusBody>;
+export type QueryPaymentStatusMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Query STK Push payment status
+ */
+export const useQueryPaymentStatus = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof queryPaymentStatus>>,
+    TError,
+    { data: BodyType<QueryPaymentStatusBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof queryPaymentStatus>>,
+  TError,
+  { data: BodyType<QueryPaymentStatusBody> },
+  TContext
+> => {
+  return useMutation(getQueryPaymentStatusMutationOptions(options));
 };
 
 /**

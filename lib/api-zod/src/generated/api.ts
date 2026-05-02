@@ -1730,6 +1730,211 @@ export const UpdateMeResponse = zod.object({
 });
 
 /**
+ * Sends an M-Pesa STK Push prompt to the customer's phone.
+In dev/sandbox mode without Mpesa credentials configured,
+automatically confirms the booking (simulated payment).
+
+ * @summary Initiate Mpesa STK Push for a booking
+ */
+export const InitiatePaymentBody = zod.object({
+  bookingId: zod.number(),
+  phone: zod.string().describe("E.164 format — +254XXXXXXXXX"),
+});
+
+export const InitiatePaymentResponse = zod.object({
+  mode: zod.enum(["live", "simulated"]),
+  message: zod.string(),
+  checkoutRequestId: zod
+    .string()
+    .optional()
+    .describe("Present when mode is live"),
+  booking: zod
+    .object({
+      id: zod.number(),
+      dealId: zod.number(),
+      userId: zod.number(),
+      venueId: zod.number(),
+      slots: zod.number(),
+      totalAmount: zod.string(),
+      commissionAmount: zod.string(),
+      venueAmount: zod.string(),
+      status: zod.enum([
+        "pending_payment",
+        "confirmed",
+        "checked_in",
+        "completed",
+        "cancelled",
+        "refunded",
+      ]),
+      mpesaRef: zod.string().nullish(),
+      confirmationCode: zod.string(),
+      specialRequests: zod.string().nullish(),
+      isCorporate: zod.boolean(),
+      deal: zod
+        .object({
+          id: zod.number(),
+          venueId: zod.number(),
+          title: zod.string(),
+          description: zod.string(),
+          category: zod.enum([
+            "lunch",
+            "dinner",
+            "brunch",
+            "treatment",
+            "class",
+            "experience",
+            "drinks",
+            "tasting",
+          ]),
+          discountPercent: zod.number(),
+          originalPrice: zod.string(),
+          dealPrice: zod.string(),
+          totalSlots: zod.number(),
+          bookedSlots: zod.number(),
+          availableSlots: zod.number(),
+          status: zod.enum([
+            "draft",
+            "live",
+            "filling_fast",
+            "sold_out",
+            "expired",
+            "cancelled",
+          ]),
+          startsAt: zod.coerce.date(),
+          endsAt: zod.coerce.date(),
+          imageUrl: zod.string().nullish(),
+          isStanding: zod.boolean(),
+          viewCount: zod.number(),
+          venue: zod
+            .object({
+              id: zod.number(),
+              name: zod.string(),
+              slug: zod.string(),
+              category: zod.enum([
+                "restaurant",
+                "spa",
+                "bar",
+                "fitness",
+                "experience",
+              ]),
+              neighborhood: zod.enum([
+                "westlands",
+                "kilimani",
+                "cbd",
+                "karen",
+                "langata",
+                "lavington",
+                "kileleshwa",
+                "runda",
+                "muthaiga",
+                "gigiri",
+                "upper_hill",
+                "other",
+              ]),
+              address: zod.string(),
+              latitude: zod.string().nullish(),
+              longitude: zod.string().nullish(),
+              description: zod.string(),
+              coverImage: zod.string().nullish(),
+              images: zod.array(zod.string()),
+              commissionRate: zod.string(),
+              status: zod.enum(["pending_approval", "approved", "suspended"]),
+              averageRating: zod.string().nullish(),
+              totalRatings: zod.number(),
+              totalBookings: zod.number(),
+              fillRate: zod.string().nullish(),
+              tags: zod.array(zod.string()),
+              createdAt: zod.coerce.date(),
+              updatedAt: zod.coerce.date(),
+            })
+            .nullish(),
+          createdAt: zod.coerce.date(),
+          updatedAt: zod.coerce.date(),
+        })
+        .nullish(),
+      venue: zod
+        .object({
+          id: zod.number(),
+          name: zod.string(),
+          slug: zod.string(),
+          category: zod.enum([
+            "restaurant",
+            "spa",
+            "bar",
+            "fitness",
+            "experience",
+          ]),
+          neighborhood: zod.enum([
+            "westlands",
+            "kilimani",
+            "cbd",
+            "karen",
+            "langata",
+            "lavington",
+            "kileleshwa",
+            "runda",
+            "muthaiga",
+            "gigiri",
+            "upper_hill",
+            "other",
+          ]),
+          address: zod.string(),
+          latitude: zod.string().nullish(),
+          longitude: zod.string().nullish(),
+          description: zod.string(),
+          coverImage: zod.string().nullish(),
+          images: zod.array(zod.string()),
+          commissionRate: zod.string(),
+          status: zod.enum(["pending_approval", "approved", "suspended"]),
+          averageRating: zod.string().nullish(),
+          totalRatings: zod.number(),
+          totalBookings: zod.number(),
+          fillRate: zod.string().nullish(),
+          tags: zod.array(zod.string()),
+          createdAt: zod.coerce.date(),
+          updatedAt: zod.coerce.date(),
+        })
+        .nullish(),
+      createdAt: zod.coerce.date(),
+      updatedAt: zod.coerce.date(),
+    })
+    .optional()
+    .describe("Present when mode is simulated (booking auto-confirmed)"),
+});
+
+/**
+ * Receives STK Push result from Safaricom servers. Not for direct client use.
+ * @summary Daraja payment callback (called by Safaricom)
+ */
+export const MpesaCallbackBody = zod.object({}).passthrough();
+
+export const MpesaCallbackResponse = zod.object({
+  ResultCode: zod.number(),
+  ResultDesc: zod.string(),
+});
+
+/**
+ * @summary Query STK Push payment status
+ */
+export const QueryPaymentStatusBody = zod.object({
+  bookingId: zod.number(),
+});
+
+export const QueryPaymentStatusResponse = zod.object({
+  status: zod.enum([
+    "pending_payment",
+    "confirmed",
+    "checked_in",
+    "completed",
+    "cancelled",
+    "refunded",
+  ]),
+  resultCode: zod.string().optional(),
+  resultDesc: zod.string().optional(),
+  message: zod.string().optional(),
+});
+
+/**
  * @summary Submit a post-visit rating
  */
 export const CreateRatingBody = zod.object({

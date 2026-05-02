@@ -4,6 +4,8 @@ import { bookingsTable, dealsTable, venuesTable, insertBookingSchema } from "@wo
 import { eq, sql, and } from "drizzle-orm";
 import { z } from "zod";
 import { randomBytes } from "crypto";
+import { isDarajaConfigured, initiateSTKPush } from "../lib/daraja";
+import { logger } from "../lib/logger";
 
 const router: IRouter = Router();
 
@@ -111,7 +113,41 @@ router.post("/bookings", async (req, res) => {
       .returning();
   });
 
-  res.status(201).json({ ...booking, deal: null, venue: null });
+  // Auto-trigger STK push if Daraja is configured and phone is provided
+  let paymentInfo: Record<string, unknown> = { paymentStatus: "pending_payment" };
+
+  if (isDarajaConfigured()) {
+    try {
+      const stkResult = await initiateSTKPush({
+        phone: body.phoneNumber,
+        amountKes: Math.ceil(Number(totalAmount)),
+        bookingId: booking.id,
+        confirmationCode: booking.confirmationCode,
+      });
+      await db
+        .update(bookingsTable)
+        .set({ mpesaCheckoutRequestId: stkResult.checkoutRequestId, updatedAt: new Date() })
+        .where(eq(bookingsTable.id, booking.id));
+      paymentInfo = {
+        paymentStatus: "stk_sent",
+        message: stkResult.customerMessage,
+        checkoutRequestId: stkResult.checkoutRequestId,
+      };
+    } catch (err) {
+      logger.error({ err, bookingId: booking.id }, "STK Push failed — booking left pending");
+      paymentInfo = { paymentStatus: "stk_failed", message: "Payment prompt could not be sent. Use /api/payments/initiate to retry." };
+    }
+  } else {
+    // Simulated mode: auto-confirm without real payment
+    await db
+      .update(bookingsTable)
+      .set({ status: "confirmed", mpesaRef: `SIM-${Date.now()}`, updatedAt: new Date() })
+      .where(eq(bookingsTable.id, booking.id));
+    paymentInfo = { paymentStatus: "simulated", message: "Mpesa not configured — booking auto-confirmed." };
+    booking.status = "confirmed";
+  }
+
+  res.status(201).json({ ...booking, deal: null, venue: null, ...paymentInfo });
 });
 
 router.get("/bookings/:id", async (req, res) => {

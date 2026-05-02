@@ -49,10 +49,24 @@ Auto-push script: `scripts/github-push.sh`
 
 - `health.ts` — GET /api/healthz
 - `auth.ts` — register / login (OTP) / verify / me / logout (JWT HS256, 7-day)
+- `payments.ts` — Mpesa STK Push initiate / Daraja callback / status query
 - `venues.ts` — CRUD + approval + analytics
 - `deals.ts` — CRUD + publish/cancel + trending feed
 - `bookings.ts` — create (with slot reservation) + cancel + check-in
 - `ratings.ts` — submit + list by venue
+
+## Mpesa Payment Architecture
+
+- Daraja STK Push (Lipa Na M-Pesa Online) via Safaricom Daraja v1
+- OAuth token caching (auto-refresh 30s before expiry)
+- Booking creation auto-triggers STK Push if configured; falls back to simulated auto-confirm
+- Callback: `POST /api/payments/callback` — Safaricom posts result here
+- Retry: `POST /api/payments/initiate` — manual retry if STK prompt missed
+- Status poll: `POST /api/payments/query`
+- Sandbox credentials pre-wired (shortcode 174379); add real keys when going live:
+  - `MPESA_CONSUMER_KEY`, `MPESA_CONSUMER_SECRET`, `MPESA_PASSKEY`, `MPESA_SHORTCODE`
+  - `MPESA_CALLBACK_URL` (auto-set to Replit public domain)
+  - `MPESA_ENV=production` to switch from sandbox to live
 
 ## Auth Architecture
 
@@ -74,8 +88,8 @@ Auto-push script: `scripts/github-push.sh`
 | 5 | Flash deal lifecycle state machine | ✅ Done |
 | 6 | Booking flow with slot reservation | ✅ Done |
 | 7 | Customer auth + session management | ✅ Done |
-| 8 | Mpesa Daraja payment integration | ⏳ Next |
-| 9 | WhatsApp Business bot (deal posting) | ⏳ Planned |
+| 8 | Mpesa Daraja payment integration | ✅ Done |
+| 9 | WhatsApp Business bot (deal posting) | ⏳ Next |
 | 10 | Push notification service (geo-aware) | ⏳ Planned |
 | 11 | Next.js frontend — customer app | ⏳ Planned |
 | 12 | Venue dashboard + analytics UI | ⏳ Planned |

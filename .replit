@@ -50,3 +50,9 @@ externalPort = 8081
 [[ports]]
 localPort = 8082
 externalPort = 3000
+
+[userenv]
+
+[userenv.shared]
+MPESA_ENV = "sandbox"
+MPESA_CALLBACK_URL = "https://af4b8ca7-29f7-4d8a-b473-31a1574a35d2-00-8938d7t3cgqx.picard.replit.dev/api/payments/callback"

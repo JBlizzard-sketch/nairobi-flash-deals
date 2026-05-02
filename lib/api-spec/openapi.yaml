@@ -560,6 +560,91 @@ paths:
               schema:
                 $ref: "#/components/schemas/User"
 
+  # ── Payments ─────────────────────────────────────────────────
+  /payments/initiate:
+    post:
+      operationId: initiatePayment
+      tags: [payments]
+      summary: Initiate Mpesa STK Push for a booking
+      description: |
+        Sends an M-Pesa STK Push prompt to the customer's phone.
+        In dev/sandbox mode without Mpesa credentials configured,
+        automatically confirms the booking (simulated payment).
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InitiatePaymentRequest"
+      responses:
+        "200":
+          description: STK Push sent or simulated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InitiatePaymentResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          description: Booking is not in pending_payment state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /payments/callback:
+    post:
+      operationId: mpesaCallback
+      tags: [payments]
+      summary: Daraja payment callback (called by Safaricom)
+      description: Receives STK Push result from Safaricom servers. Not for direct client use.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        "200":
+          description: Callback acknowledged
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ResultCode:
+                    type: number
+                  ResultDesc:
+                    type: string
+                required: [ResultCode, ResultDesc]
+
+  /payments/query:
+    post:
+      operationId: queryPaymentStatus
+      tags: [payments]
+      summary: Query STK Push payment status
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                bookingId:
+                  type: number
+              required: [bookingId]
+      responses:
+        "200":
+          description: Payment status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentQueryResponse"
+
   # ── Ratings ──────────────────────────────────────────────────
   /ratings:
     post:
@@ -657,6 +742,45 @@ components:
         code:
           type: string
       required: [message]
+
+    InitiatePaymentRequest:
+      type: object
+      properties:
+        bookingId:
+          type: number
+        phone:
+          type: string
+          description: E.164 format — +254XXXXXXXXX
+      required: [bookingId, phone]
+
+    InitiatePaymentResponse:
+      type: object
+      properties:
+        mode:
+          type: string
+          enum: [live, simulated]
+        message:
+          type: string
+        checkoutRequestId:
+          type: string
+          description: Present when mode is live
+        booking:
+          $ref: "#/components/schemas/Booking"
+          description: Present when mode is simulated (booking auto-confirmed)
+      required: [mode, message]
+
+    PaymentQueryResponse:
+      type: object
+      properties:
+        status:
+          $ref: "#/components/schemas/BookingStatus"
+        resultCode:
+          type: string
+        resultDesc:
+          type: string
+        message:
+          type: string
+      required: [status]
 
     RegisterRequest:
       type: object

@@ -14,6 +14,173 @@ export interface Error {
   code?: string;
 }
 
+export interface InitiatePaymentRequest {
+  bookingId: number;
+  /** E.164 format — +254XXXXXXXXX */
+  phone: string;
+}
+
+export type InitiatePaymentResponseMode =
+  (typeof InitiatePaymentResponseMode)[keyof typeof InitiatePaymentResponseMode];
+
+export const InitiatePaymentResponseMode = {
+  live: "live",
+  simulated: "simulated",
+} as const;
+
+export type BookingStatus = (typeof BookingStatus)[keyof typeof BookingStatus];
+
+export const BookingStatus = {
+  pending_payment: "pending_payment",
+  confirmed: "confirmed",
+  checked_in: "checked_in",
+  completed: "completed",
+  cancelled: "cancelled",
+  refunded: "refunded",
+} as const;
+
+export type DealCategory = (typeof DealCategory)[keyof typeof DealCategory];
+
+export const DealCategory = {
+  lunch: "lunch",
+  dinner: "dinner",
+  brunch: "brunch",
+  treatment: "treatment",
+  class: "class",
+  experience: "experience",
+  drinks: "drinks",
+  tasting: "tasting",
+} as const;
+
+export type DealStatus = (typeof DealStatus)[keyof typeof DealStatus];
+
+export const DealStatus = {
+  draft: "draft",
+  live: "live",
+  filling_fast: "filling_fast",
+  sold_out: "sold_out",
+  expired: "expired",
+  cancelled: "cancelled",
+} as const;
+
+export type VenueCategory = (typeof VenueCategory)[keyof typeof VenueCategory];
+
+export const VenueCategory = {
+  restaurant: "restaurant",
+  spa: "spa",
+  bar: "bar",
+  fitness: "fitness",
+  experience: "experience",
+} as const;
+
+export type VenueNeighborhood =
+  (typeof VenueNeighborhood)[keyof typeof VenueNeighborhood];
+
+export const VenueNeighborhood = {
+  westlands: "westlands",
+  kilimani: "kilimani",
+  cbd: "cbd",
+  karen: "karen",
+  langata: "langata",
+  lavington: "lavington",
+  kileleshwa: "kileleshwa",
+  runda: "runda",
+  muthaiga: "muthaiga",
+  gigiri: "gigiri",
+  upper_hill: "upper_hill",
+  other: "other",
+} as const;
+
+export type VenueStatus = (typeof VenueStatus)[keyof typeof VenueStatus];
+
+export const VenueStatus = {
+  pending_approval: "pending_approval",
+  approved: "approved",
+  suspended: "suspended",
+} as const;
+
+export interface Venue {
+  id: number;
+  name: string;
+  slug: string;
+  category: VenueCategory;
+  neighborhood: VenueNeighborhood;
+  address: string;
+  latitude?: string | null;
+  longitude?: string | null;
+  description: string;
+  coverImage?: string | null;
+  images: string[];
+  commissionRate: string;
+  status: VenueStatus;
+  averageRating?: string | null;
+  totalRatings: number;
+  totalBookings: number;
+  fillRate?: string | null;
+  tags: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Deal {
+  id: number;
+  venueId: number;
+  title: string;
+  description: string;
+  category: DealCategory;
+  discountPercent: number;
+  originalPrice: string;
+  dealPrice: string;
+  totalSlots: number;
+  bookedSlots: number;
+  availableSlots: number;
+  status: DealStatus;
+  startsAt: string;
+  endsAt: string;
+  imageUrl?: string | null;
+  isStanding: boolean;
+  viewCount: number;
+  venue?: Venue | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Booking {
+  id: number;
+  dealId: number;
+  userId: number;
+  venueId: number;
+  slots: number;
+  totalAmount: string;
+  commissionAmount: string;
+  venueAmount: string;
+  status: BookingStatus;
+  mpesaRef?: string | null;
+  confirmationCode: string;
+  specialRequests?: string | null;
+  isCorporate: boolean;
+  deal?: Deal | null;
+  venue?: Venue | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface InitiatePaymentResponse {
+  mode: InitiatePaymentResponseMode;
+  message: string;
+  /** Present when mode is live */
+  checkoutRequestId?: string;
+  /** Present when mode is simulated (booking auto-confirmed) */
+  booking?: Booking;
+}
+
+export interface PaymentQueryResponse {
+  status: BookingStatus;
+  resultCode?: string;
+  resultDesc?: string;
+  message?: string;
+}
+
 export interface RegisterRequest {
   /** E.164 format — +254XXXXXXXXX */
   phone: string;
@@ -76,100 +243,6 @@ export interface Pagination {
   offset: number;
 }
 
-export type VenueCategory = (typeof VenueCategory)[keyof typeof VenueCategory];
-
-export const VenueCategory = {
-  restaurant: "restaurant",
-  spa: "spa",
-  bar: "bar",
-  fitness: "fitness",
-  experience: "experience",
-} as const;
-
-export type VenueNeighborhood =
-  (typeof VenueNeighborhood)[keyof typeof VenueNeighborhood];
-
-export const VenueNeighborhood = {
-  westlands: "westlands",
-  kilimani: "kilimani",
-  cbd: "cbd",
-  karen: "karen",
-  langata: "langata",
-  lavington: "lavington",
-  kileleshwa: "kileleshwa",
-  runda: "runda",
-  muthaiga: "muthaiga",
-  gigiri: "gigiri",
-  upper_hill: "upper_hill",
-  other: "other",
-} as const;
-
-export type VenueStatus = (typeof VenueStatus)[keyof typeof VenueStatus];
-
-export const VenueStatus = {
-  pending_approval: "pending_approval",
-  approved: "approved",
-  suspended: "suspended",
-} as const;
-
-export type DealStatus = (typeof DealStatus)[keyof typeof DealStatus];
-
-export const DealStatus = {
-  draft: "draft",
-  live: "live",
-  filling_fast: "filling_fast",
-  sold_out: "sold_out",
-  expired: "expired",
-  cancelled: "cancelled",
-} as const;
-
-export type DealCategory = (typeof DealCategory)[keyof typeof DealCategory];
-
-export const DealCategory = {
-  lunch: "lunch",
-  dinner: "dinner",
-  brunch: "brunch",
-  treatment: "treatment",
-  class: "class",
-  experience: "experience",
-  drinks: "drinks",
-  tasting: "tasting",
-} as const;
-
-export type BookingStatus = (typeof BookingStatus)[keyof typeof BookingStatus];
-
-export const BookingStatus = {
-  pending_payment: "pending_payment",
-  confirmed: "confirmed",
-  checked_in: "checked_in",
-  completed: "completed",
-  cancelled: "cancelled",
-  refunded: "refunded",
-} as const;
-
-export interface Venue {
-  id: number;
-  name: string;
-  slug: string;
-  category: VenueCategory;
-  neighborhood: VenueNeighborhood;
-  address: string;
-  latitude?: string | null;
-  longitude?: string | null;
-  description: string;
-  coverImage?: string | null;
-  images: string[];
-  commissionRate: string;
-  status: VenueStatus;
-  averageRating?: string | null;
-  totalRatings: number;
-  totalBookings: number;
-  fillRate?: string | null;
-  tags: string[];
-  createdAt: string;
-  updatedAt: string;
-}
-
 export interface CreateVenueRequest {
   name: string;
   slug: string;
@@ -196,29 +269,6 @@ export interface UpdateVenueRequest {
 export interface VenueListResponse {
   data: Venue[];
   pagination: Pagination;
-}
-
-export interface Deal {
-  id: number;
-  venueId: number;
-  title: string;
-  description: string;
-  category: DealCategory;
-  discountPercent: number;
-  originalPrice: string;
-  dealPrice: string;
-  totalSlots: number;
-  bookedSlots: number;
-  availableSlots: number;
-  status: DealStatus;
-  startsAt: string;
-  endsAt: string;
-  imageUrl?: string | null;
-  isStanding: boolean;
-  viewCount: number;
-  venue?: Venue | null;
-  createdAt: string;
-  updatedAt: string;
 }
 
 export interface VenueAnalytics {
@@ -263,26 +313,6 @@ export interface UpdateDealRequest {
 export interface DealListResponse {
   data: Deal[];
   pagination: Pagination;
-}
-
-export interface Booking {
-  id: number;
-  dealId: number;
-  userId: number;
-  venueId: number;
-  slots: number;
-  totalAmount: string;
-  commissionAmount: string;
-  venueAmount: string;
-  status: BookingStatus;
-  mpesaRef?: string | null;
-  confirmationCode: string;
-  specialRequests?: string | null;
-  isCorporate: boolean;
-  deal?: Deal | null;
-  venue?: Venue | null;
-  createdAt: string;
-  updatedAt: string;
 }
 
 export interface CreateBookingRequest {
@@ -371,6 +401,17 @@ export type ListBookingsParams = {
   status?: BookingStatus;
   limit?: number;
   offset?: number;
+};
+
+export type MpesaCallbackBody = { [key: string]: unknown };
+
+export type MpesaCallback200 = {
+  ResultCode: number;
+  ResultDesc: string;
+};
+
+export type QueryPaymentStatusBody = {
+  bookingId: number;
 };
 
 export type ListVenueRatingsParams = {
