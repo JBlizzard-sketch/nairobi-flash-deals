@@ -34,8 +34,14 @@ pnpm workspace monorepo using TypeScript. Each package manages its own dependenc
 
 ## GitHub Sync
 
-Push to GitHub anytime: `node scripts/src/gh-push.mjs "your commit message"`
-Auto-push script: `scripts/github-push.sh`
+**Remote**: `https://github.com/JBlizzard-sketch/nairobi-flash-deals` (branch: `main`)
+
+**Automated push** — runs every 30 minutes via the "GitHub Auto-Sync" Replit workflow:
+- Scheduler: `scripts/src/github-scheduler.mjs` — uses `setInterval(30 min)`, runs once immediately on start
+- Push script: `scripts/github-push.sh` (executable) — stages all changes, commits if dirty, pushes with `--force-with-lease`
+- Workflow command: `node scripts/src/github-scheduler.mjs`
+
+**Manual push**: `node scripts/src/gh-push.mjs "commit message"` (uses GitHub REST API with `$GITHUB_TOKEN`)
 
 ## Database Schema (lib/db/src/schema/)
 
@@ -91,7 +97,7 @@ Auto-push script: `scripts/github-push.sh`
 | 8 | Mpesa Daraja payment integration | ✅ Done |
 | 9 | WhatsApp Business bot (deal posting) | ✅ Done |
 | 10 | Push notification service (geo-aware) | ✅ Done |
-| 11 | Next.js frontend — customer app | ⏳ Next |
+| 11 | React/Vite customer app — deals feed, booking, auth | ✅ Done |
 | 12 | Venue dashboard + analytics UI | ⏳ Planned |
 | 13 | Standing deals (auto-activate) | ⏳ Planned |
 | 14 | Trending feed algorithms | ⏳ Planned |
