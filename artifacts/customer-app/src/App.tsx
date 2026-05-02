@@ -2,27 +2,33 @@ import { Switch, Route, Router as WouterRouter } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { Header } from "@/components/layout/header";
+import { BottomNav } from "@/components/layout/bottom-nav";
 import NotFound from "@/pages/not-found";
+import Home from "@/pages/home";
+import DealDetail from "@/pages/deal-detail";
+import Bookings from "@/pages/bookings";
+import Profile from "@/pages/profile";
+import Auth from "@/pages/auth";
 
 const queryClient = new QueryClient();
 
-function Home() {
-  return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-background text-foreground">
-      <div className="text-center">
-        <h1 className="text-2xl font-bold text-primary">Nairobi Flash Deals</h1>
-        <p className="mt-2 text-sm text-muted-foreground">Platform is under construction.</p>
-      </div>
-    </div>
-  );
-}
-
 function Router() {
   return (
-    <Switch>
-      <Route path="/" component={Home} />
-      <Route component={NotFound} />
-    </Switch>
+    <div className="min-h-[100dvh] flex flex-col bg-background text-foreground font-sans">
+      <Header />
+      <main className="flex-1 w-full relative">
+        <Switch>
+          <Route path="/" component={Home} />
+          <Route path="/deals/:id" component={DealDetail} />
+          <Route path="/bookings" component={Bookings} />
+          <Route path="/profile" component={Profile} />
+          <Route path="/auth" component={Auth} />
+          <Route component={NotFound} />
+        </Switch>
+      </main>
+      <BottomNav />
+    </div>
   );
 }
 
