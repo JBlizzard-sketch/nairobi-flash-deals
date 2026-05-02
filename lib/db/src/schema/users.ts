@@ -7,8 +7,8 @@ export const userRoleEnum = pgEnum("user_role", ["customer", "venue_manager", "a
 
 export const usersTable = pgTable("users", {
   id: serial("id").primaryKey(),
-  email: text("email").notNull().unique(),
-  phone: text("phone"),
+  phone: text("phone").notNull().unique(),
+  email: text("email").unique(),
   name: text("name").notNull(),
   role: userRoleEnum("role").notNull().default("customer"),
   loyaltyTier: loyaltyTierEnum("loyalty_tier").notNull().default("bronze"),

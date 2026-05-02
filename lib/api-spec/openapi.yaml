@@ -10,6 +10,8 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: auth
+    description: Phone OTP authentication
   - name: venues
     description: Venue management
   - name: deals
@@ -35,6 +37,143 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  # ── Auth ─────────────────────────────────────────────────────
+  /auth/register:
+    post:
+      operationId: register
+      tags: [auth]
+      summary: Register with phone number
+      description: Creates account and sends OTP. In development the OTP is returned in the response.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterRequest"
+      responses:
+        "201":
+          description: OTP sent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OtpSentResponse"
+        "409":
+          description: Phone already registered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /auth/login:
+    post:
+      operationId: login
+      tags: [auth]
+      summary: Login with phone number
+      description: Sends OTP to registered phone. In development the OTP is returned in the response.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: OTP sent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OtpSentResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /auth/verify:
+    post:
+      operationId: verifyOtp
+      tags: [auth]
+      summary: Verify OTP and receive JWT token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VerifyOtpRequest"
+      responses:
+        "200":
+          description: Authenticated — returns JWT token and user profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "400":
+          description: Incorrect or expired OTP
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "429":
+          description: Too many failed attempts
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /auth/me:
+    get:
+      operationId: getAuthMe
+      tags: [auth]
+      summary: Get current authenticated user
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Authenticated user profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+    patch:
+      operationId: updateAuthMe
+      tags: [auth]
+      summary: Update current user profile
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateUserRequest"
+      responses:
+        "200":
+          description: Updated user profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /auth/logout:
+    post:
+      operationId: logout
+      tags: [auth]
+      summary: Logout (client should discard token)
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Logged out
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                required: [message]
 
   # ── Venues ───────────────────────────────────────────────────
   /venues:
@@ -467,6 +606,12 @@ paths:
                 $ref: "#/components/schemas/RatingListResponse"
 
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
   parameters:
     Id:
       in: path
@@ -484,6 +629,12 @@ components:
             $ref: "#/components/schemas/Error"
     NotFound:
       description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    Unauthorized:
+      description: Missing or invalid auth token
       content:
         application/json:
           schema:
@@ -506,6 +657,60 @@ components:
         code:
           type: string
       required: [message]
+
+    RegisterRequest:
+      type: object
+      properties:
+        phone:
+          type: string
+          description: E.164 format — +254XXXXXXXXX
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+      required: [phone, name]
+
+    LoginRequest:
+      type: object
+      properties:
+        phone:
+          type: string
+          description: E.164 format — +254XXXXXXXXX
+      required: [phone]
+
+    VerifyOtpRequest:
+      type: object
+      properties:
+        phone:
+          type: string
+        otp:
+          type: string
+          minLength: 6
+          maxLength: 6
+      required: [phone, otp]
+
+    OtpSentResponse:
+      type: object
+      properties:
+        message:
+          type: string
+        phone:
+          type: string
+        otp:
+          type: string
+          description: Only present in development mode
+      required: [message, phone]
+
+    AuthResponse:
+      type: object
+      properties:
+        token:
+          type: string
+          description: JWT bearer token — valid for 7 days
+        user:
+          $ref: "#/components/schemas/User"
+      required: [token, user]
 
     Pagination:
       type: object
