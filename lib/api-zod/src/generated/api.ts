@@ -2233,3 +2233,355 @@ export const RespondToRatingResponse = zod.object({
   response: zod.string().nullish(),
   createdAt: zod.coerce.date(),
 });
+
+/**
+ * @summary Platform-wide statistics (admin only)
+ */
+export const GetAdminStatsResponse = zod.object({
+  venues: zod.object({
+    total: zod.number(),
+    pending: zod.number(),
+    approved: zod.number(),
+    suspended: zod.number(),
+  }),
+  deals: zod.object({
+    total: zod.number(),
+    live: zod.number(),
+    fillingFast: zod.number(),
+    soldOut: zod.number(),
+  }),
+  bookings: zod.object({
+    total: zod.number(),
+    totalRevenue: zod.number(),
+    totalCommission: zod.number(),
+    monthBookings: zod.number(),
+    monthRevenue: zod.number(),
+    monthCommission: zod.number(),
+  }),
+  users: zod.object({
+    total: zod.number(),
+    customers: zod.number(),
+    managers: zod.number(),
+    admins: zod.number(),
+  }),
+  dailyRevenue: zod.array(
+    zod.object({
+      date: zod.string(),
+      label: zod.string(),
+      bookings: zod.number(),
+      revenue: zod.number(),
+      commission: zod.number(),
+    }),
+  ),
+  topVenues: zod.array(
+    zod.object({
+      id: zod.number(),
+      name: zod.string(),
+      category: zod.string(),
+      neighborhood: zod.string(),
+      bookings: zod.number(),
+      revenue: zod.number(),
+    }),
+  ),
+});
+
+/**
+ * @summary List all venues (admin only)
+ */
+export const ListAdminVenuesQueryParams = zod.object({
+  status: zod.coerce.string().optional(),
+  limit: zod.coerce.number().optional(),
+  offset: zod.coerce.number().optional(),
+});
+
+export const ListAdminVenuesResponse = zod.object({
+  data: zod.array(
+    zod.object({
+      id: zod.number(),
+      name: zod.string(),
+      slug: zod.string(),
+      category: zod.enum(["restaurant", "spa", "bar", "fitness", "experience"]),
+      neighborhood: zod.enum([
+        "westlands",
+        "kilimani",
+        "cbd",
+        "karen",
+        "langata",
+        "lavington",
+        "kileleshwa",
+        "runda",
+        "muthaiga",
+        "gigiri",
+        "upper_hill",
+        "other",
+      ]),
+      address: zod.string(),
+      latitude: zod.string().nullish(),
+      longitude: zod.string().nullish(),
+      description: zod.string(),
+      coverImage: zod.string().nullish(),
+      images: zod.array(zod.string()),
+      commissionRate: zod.string(),
+      status: zod.enum(["pending_approval", "approved", "suspended"]),
+      averageRating: zod.string().nullish(),
+      totalRatings: zod.number(),
+      totalBookings: zod.number(),
+      fillRate: zod.string().nullish(),
+      tags: zod.array(zod.string()),
+      createdAt: zod.coerce.date(),
+      updatedAt: zod.coerce.date(),
+    }),
+  ),
+  pagination: zod.object({
+    total: zod.number(),
+    limit: zod.number(),
+    offset: zod.number(),
+  }),
+});
+
+/**
+ * @summary Approve or suspend a venue (admin only)
+ */
+export const UpdateVenueStatusParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const UpdateVenueStatusBody = zod.object({
+  status: zod.string(),
+});
+
+export const UpdateVenueStatusResponse = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  slug: zod.string(),
+  category: zod.enum(["restaurant", "spa", "bar", "fitness", "experience"]),
+  neighborhood: zod.enum([
+    "westlands",
+    "kilimani",
+    "cbd",
+    "karen",
+    "langata",
+    "lavington",
+    "kileleshwa",
+    "runda",
+    "muthaiga",
+    "gigiri",
+    "upper_hill",
+    "other",
+  ]),
+  address: zod.string(),
+  latitude: zod.string().nullish(),
+  longitude: zod.string().nullish(),
+  description: zod.string(),
+  coverImage: zod.string().nullish(),
+  images: zod.array(zod.string()),
+  commissionRate: zod.string(),
+  status: zod.enum(["pending_approval", "approved", "suspended"]),
+  averageRating: zod.string().nullish(),
+  totalRatings: zod.number(),
+  totalBookings: zod.number(),
+  fillRate: zod.string().nullish(),
+  tags: zod.array(zod.string()),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+});
+
+/**
+ * @summary List all bookings platform-wide (admin only)
+ */
+export const ListAdminBookingsQueryParams = zod.object({
+  status: zod.coerce.string().optional(),
+  limit: zod.coerce.number().optional(),
+  offset: zod.coerce.number().optional(),
+});
+
+export const ListAdminBookingsResponse = zod.object({
+  data: zod.array(
+    zod.object({
+      id: zod.number(),
+      dealId: zod.number(),
+      userId: zod.number(),
+      venueId: zod.number(),
+      slots: zod.number(),
+      totalAmount: zod.string(),
+      commissionAmount: zod.string(),
+      venueAmount: zod.string(),
+      status: zod.enum([
+        "pending_payment",
+        "confirmed",
+        "checked_in",
+        "completed",
+        "cancelled",
+        "refunded",
+      ]),
+      mpesaRef: zod.string().nullish(),
+      confirmationCode: zod.string(),
+      specialRequests: zod.string().nullish(),
+      isCorporate: zod.boolean(),
+      deal: zod
+        .object({
+          id: zod.number(),
+          venueId: zod.number(),
+          title: zod.string(),
+          description: zod.string(),
+          category: zod.enum([
+            "lunch",
+            "dinner",
+            "brunch",
+            "treatment",
+            "class",
+            "experience",
+            "drinks",
+            "tasting",
+          ]),
+          discountPercent: zod.number(),
+          originalPrice: zod.string(),
+          dealPrice: zod.string(),
+          totalSlots: zod.number(),
+          bookedSlots: zod.number(),
+          availableSlots: zod.number(),
+          status: zod.enum([
+            "draft",
+            "live",
+            "filling_fast",
+            "sold_out",
+            "expired",
+            "cancelled",
+          ]),
+          startsAt: zod.coerce.date(),
+          endsAt: zod.coerce.date(),
+          imageUrl: zod.string().nullish(),
+          isStanding: zod.boolean(),
+          viewCount: zod.number(),
+          venue: zod
+            .object({
+              id: zod.number(),
+              name: zod.string(),
+              slug: zod.string(),
+              category: zod.enum([
+                "restaurant",
+                "spa",
+                "bar",
+                "fitness",
+                "experience",
+              ]),
+              neighborhood: zod.enum([
+                "westlands",
+                "kilimani",
+                "cbd",
+                "karen",
+                "langata",
+                "lavington",
+                "kileleshwa",
+                "runda",
+                "muthaiga",
+                "gigiri",
+                "upper_hill",
+                "other",
+              ]),
+              address: zod.string(),
+              latitude: zod.string().nullish(),
+              longitude: zod.string().nullish(),
+              description: zod.string(),
+              coverImage: zod.string().nullish(),
+              images: zod.array(zod.string()),
+              commissionRate: zod.string(),
+              status: zod.enum(["pending_approval", "approved", "suspended"]),
+              averageRating: zod.string().nullish(),
+              totalRatings: zod.number(),
+              totalBookings: zod.number(),
+              fillRate: zod.string().nullish(),
+              tags: zod.array(zod.string()),
+              createdAt: zod.coerce.date(),
+              updatedAt: zod.coerce.date(),
+            })
+            .nullish(),
+          createdAt: zod.coerce.date(),
+          updatedAt: zod.coerce.date(),
+        })
+        .nullish(),
+      venue: zod
+        .object({
+          id: zod.number(),
+          name: zod.string(),
+          slug: zod.string(),
+          category: zod.enum([
+            "restaurant",
+            "spa",
+            "bar",
+            "fitness",
+            "experience",
+          ]),
+          neighborhood: zod.enum([
+            "westlands",
+            "kilimani",
+            "cbd",
+            "karen",
+            "langata",
+            "lavington",
+            "kileleshwa",
+            "runda",
+            "muthaiga",
+            "gigiri",
+            "upper_hill",
+            "other",
+          ]),
+          address: zod.string(),
+          latitude: zod.string().nullish(),
+          longitude: zod.string().nullish(),
+          description: zod.string(),
+          coverImage: zod.string().nullish(),
+          images: zod.array(zod.string()),
+          commissionRate: zod.string(),
+          status: zod.enum(["pending_approval", "approved", "suspended"]),
+          averageRating: zod.string().nullish(),
+          totalRatings: zod.number(),
+          totalBookings: zod.number(),
+          fillRate: zod.string().nullish(),
+          tags: zod.array(zod.string()),
+          createdAt: zod.coerce.date(),
+          updatedAt: zod.coerce.date(),
+        })
+        .nullish(),
+      createdAt: zod.coerce.date(),
+      updatedAt: zod.coerce.date(),
+    }),
+  ),
+  pagination: zod.object({
+    total: zod.number(),
+    limit: zod.number(),
+    offset: zod.number(),
+  }),
+});
+
+/**
+ * @summary List all users (admin only)
+ */
+export const ListAdminUsersQueryParams = zod.object({
+  role: zod.coerce.string().optional(),
+  limit: zod.coerce.number().optional(),
+  offset: zod.coerce.number().optional(),
+});
+
+export const ListAdminUsersResponse = zod.object({
+  data: zod.array(
+    zod.object({
+      id: zod.number(),
+      email: zod.string(),
+      phone: zod.string().nullish(),
+      name: zod.string(),
+      role: zod.string(),
+      managedVenueId: zod.number().nullish(),
+      loyaltyTier: zod.enum(["bronze", "silver", "gold", "platinum"]),
+      loyaltyPoints: zod.number(),
+      subscriptionCategories: zod.array(zod.string()),
+      neighborhoodPref: zod.string().nullish(),
+      createdAt: zod.coerce.date(),
+    }),
+  ),
+  pagination: zod.object({
+    total: zod.number(),
+    limit: zod.number(),
+    offset: zod.number(),
+  }),
+});

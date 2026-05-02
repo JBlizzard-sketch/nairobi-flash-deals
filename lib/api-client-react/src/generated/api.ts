@@ -17,6 +17,7 @@ import type {
 } from "@tanstack/react-query";
 
 import type {
+  AdminStats,
   AuthResponse,
   BadRequestResponse,
   Booking,
@@ -32,6 +33,10 @@ import type {
   HealthStatus,
   InitiatePaymentRequest,
   InitiatePaymentResponse,
+  ListAdminBookingsParams,
+  ListAdminUsers200,
+  ListAdminUsersParams,
+  ListAdminVenuesParams,
   ListBookingsParams,
   ListDealRatingsParams,
   ListDealsParams,
@@ -61,6 +66,7 @@ import type {
   UpdateDealRequest,
   UpdateUserRequest,
   UpdateVenueRequest,
+  UpdateVenueStatusBody,
   User,
   Venue,
   VenueAnalytics,
@@ -3820,3 +3826,450 @@ export const useRespondToRating = <
 > => {
   return useMutation(getRespondToRatingMutationOptions(options));
 };
+
+/**
+ * @summary Platform-wide statistics (admin only)
+ */
+export const getGetAdminStatsUrl = () => {
+  return `/api/admin/stats`;
+};
+
+export const getAdminStats = async (
+  options?: RequestInit,
+): Promise<AdminStats> => {
+  return customFetch<AdminStats>(getGetAdminStatsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetAdminStatsQueryKey = () => {
+  return [`/api/admin/stats`] as const;
+};
+
+export const getGetAdminStatsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getAdminStats>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getAdminStats>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetAdminStatsQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdminStats>>> = ({
+    signal,
+  }) => getAdminStats({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getAdminStats>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetAdminStatsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getAdminStats>>
+>;
+export type GetAdminStatsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Platform-wide statistics (admin only)
+ */
+
+export function useGetAdminStats<
+  TData = Awaited<ReturnType<typeof getAdminStats>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getAdminStats>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetAdminStatsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary List all venues (admin only)
+ */
+export const getListAdminVenuesUrl = (params?: ListAdminVenuesParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/admin/venues?${stringifiedParams}`
+    : `/api/admin/venues`;
+};
+
+export const listAdminVenues = async (
+  params?: ListAdminVenuesParams,
+  options?: RequestInit,
+): Promise<VenueListResponse> => {
+  return customFetch<VenueListResponse>(getListAdminVenuesUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListAdminVenuesQueryKey = (params?: ListAdminVenuesParams) => {
+  return [`/api/admin/venues`, ...(params ? [params] : [])] as const;
+};
+
+export const getListAdminVenuesQueryOptions = <
+  TData = Awaited<ReturnType<typeof listAdminVenues>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListAdminVenuesParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listAdminVenues>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListAdminVenuesQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listAdminVenues>>> = ({
+    signal,
+  }) => listAdminVenues(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listAdminVenues>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListAdminVenuesQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listAdminVenues>>
+>;
+export type ListAdminVenuesQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List all venues (admin only)
+ */
+
+export function useListAdminVenues<
+  TData = Awaited<ReturnType<typeof listAdminVenues>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListAdminVenuesParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listAdminVenues>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListAdminVenuesQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Approve or suspend a venue (admin only)
+ */
+export const getUpdateVenueStatusUrl = (id: number) => {
+  return `/api/admin/venues/${id}/status`;
+};
+
+export const updateVenueStatus = async (
+  id: number,
+  updateVenueStatusBody: UpdateVenueStatusBody,
+  options?: RequestInit,
+): Promise<Venue> => {
+  return customFetch<Venue>(getUpdateVenueStatusUrl(id), {
+    ...options,
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(updateVenueStatusBody),
+  });
+};
+
+export const getUpdateVenueStatusMutationOptions = <
+  TError = ErrorType<NotFoundResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateVenueStatus>>,
+    TError,
+    { id: number; data: BodyType<UpdateVenueStatusBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateVenueStatus>>,
+  TError,
+  { id: number; data: BodyType<UpdateVenueStatusBody> },
+  TContext
+> => {
+  const mutationKey = ["updateVenueStatus"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateVenueStatus>>,
+    { id: number; data: BodyType<UpdateVenueStatusBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return updateVenueStatus(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateVenueStatusMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateVenueStatus>>
+>;
+export type UpdateVenueStatusMutationBody = BodyType<UpdateVenueStatusBody>;
+export type UpdateVenueStatusMutationError = ErrorType<NotFoundResponse>;
+
+/**
+ * @summary Approve or suspend a venue (admin only)
+ */
+export const useUpdateVenueStatus = <
+  TError = ErrorType<NotFoundResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateVenueStatus>>,
+    TError,
+    { id: number; data: BodyType<UpdateVenueStatusBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateVenueStatus>>,
+  TError,
+  { id: number; data: BodyType<UpdateVenueStatusBody> },
+  TContext
+> => {
+  return useMutation(getUpdateVenueStatusMutationOptions(options));
+};
+
+/**
+ * @summary List all bookings platform-wide (admin only)
+ */
+export const getListAdminBookingsUrl = (params?: ListAdminBookingsParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/admin/bookings?${stringifiedParams}`
+    : `/api/admin/bookings`;
+};
+
+export const listAdminBookings = async (
+  params?: ListAdminBookingsParams,
+  options?: RequestInit,
+): Promise<BookingListResponse> => {
+  return customFetch<BookingListResponse>(getListAdminBookingsUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListAdminBookingsQueryKey = (
+  params?: ListAdminBookingsParams,
+) => {
+  return [`/api/admin/bookings`, ...(params ? [params] : [])] as const;
+};
+
+export const getListAdminBookingsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listAdminBookings>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListAdminBookingsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listAdminBookings>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListAdminBookingsQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listAdminBookings>>
+  > = ({ signal }) => listAdminBookings(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listAdminBookings>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListAdminBookingsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listAdminBookings>>
+>;
+export type ListAdminBookingsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List all bookings platform-wide (admin only)
+ */
+
+export function useListAdminBookings<
+  TData = Awaited<ReturnType<typeof listAdminBookings>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListAdminBookingsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listAdminBookings>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListAdminBookingsQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary List all users (admin only)
+ */
+export const getListAdminUsersUrl = (params?: ListAdminUsersParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/admin/users?${stringifiedParams}`
+    : `/api/admin/users`;
+};
+
+export const listAdminUsers = async (
+  params?: ListAdminUsersParams,
+  options?: RequestInit,
+): Promise<ListAdminUsers200> => {
+  return customFetch<ListAdminUsers200>(getListAdminUsersUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListAdminUsersQueryKey = (params?: ListAdminUsersParams) => {
+  return [`/api/admin/users`, ...(params ? [params] : [])] as const;
+};
+
+export const getListAdminUsersQueryOptions = <
+  TData = Awaited<ReturnType<typeof listAdminUsers>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListAdminUsersParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listAdminUsers>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListAdminUsersQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listAdminUsers>>> = ({
+    signal,
+  }) => listAdminUsers(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listAdminUsers>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListAdminUsersQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listAdminUsers>>
+>;
+export type ListAdminUsersQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List all users (admin only)
+ */
+
+export function useListAdminUsers<
+  TData = Awaited<ReturnType<typeof listAdminUsers>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListAdminUsersParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listAdminUsers>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListAdminUsersQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}

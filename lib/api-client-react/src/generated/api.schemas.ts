@@ -470,6 +470,62 @@ export interface BookingListResponse {
   pagination: Pagination;
 }
 
+export interface AdminDailyEntry {
+  date: string;
+  label: string;
+  bookings: number;
+  revenue: number;
+  commission: number;
+}
+
+export interface AdminTopVenue {
+  id: number;
+  name: string;
+  category: string;
+  neighborhood: string;
+  bookings: number;
+  revenue: number;
+}
+
+export type AdminStatsVenues = {
+  total: number;
+  pending: number;
+  approved: number;
+  suspended: number;
+};
+
+export type AdminStatsDeals = {
+  total: number;
+  live: number;
+  fillingFast: number;
+  soldOut: number;
+};
+
+export type AdminStatsBookings = {
+  total: number;
+  totalRevenue: number;
+  totalCommission: number;
+  monthBookings: number;
+  monthRevenue: number;
+  monthCommission: number;
+};
+
+export type AdminStatsUsers = {
+  total: number;
+  customers: number;
+  managers: number;
+  admins: number;
+};
+
+export interface AdminStats {
+  venues: AdminStatsVenues;
+  deals: AdminStatsDeals;
+  bookings: AdminStatsBookings;
+  users: AdminStatsUsers;
+  dailyRevenue: AdminDailyEntry[];
+  topVenues: AdminTopVenue[];
+}
+
 export interface UpdateUserRequest {
   name?: string;
   phone?: string;
@@ -586,4 +642,31 @@ export type ListVenueRatingsParams = {
 
 export type RespondToRatingBody = {
   response: string;
+};
+
+export type ListAdminVenuesParams = {
+  status?: string;
+  limit?: number;
+  offset?: number;
+};
+
+export type UpdateVenueStatusBody = {
+  status: string;
+};
+
+export type ListAdminBookingsParams = {
+  status?: string;
+  limit?: number;
+  offset?: number;
+};
+
+export type ListAdminUsersParams = {
+  role?: string;
+  limit?: number;
+  offset?: number;
+};
+
+export type ListAdminUsers200 = {
+  data: User[];
+  pagination: Pagination;
 };
