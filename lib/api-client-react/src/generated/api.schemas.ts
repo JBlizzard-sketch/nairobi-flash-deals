@@ -14,6 +14,78 @@ export interface Error {
   code?: string;
 }
 
+export type NotificationPreferencesRequestSubscriptionCategoriesItem =
+  (typeof NotificationPreferencesRequestSubscriptionCategoriesItem)[keyof typeof NotificationPreferencesRequestSubscriptionCategoriesItem];
+
+export const NotificationPreferencesRequestSubscriptionCategoriesItem = {
+  restaurant: "restaurant",
+  spa: "spa",
+  bar: "bar",
+  fitness: "fitness",
+  experience: "experience",
+} as const;
+
+export interface NotificationPreferencesRequest {
+  /** @minItems 1 */
+  subscriptionCategories?: NotificationPreferencesRequestSubscriptionCategoriesItem[];
+  neighborhoodPref?: string;
+}
+
+export type NotificationPreferencesResponsePreferences = {
+  id: number;
+  subscriptionCategories: string[];
+  neighborhoodPref?: string;
+};
+
+export interface NotificationPreferencesResponse {
+  message: string;
+  preferences: NotificationPreferencesResponsePreferences;
+}
+
+export interface LocationRequest {
+  /**
+   * @minimum -90
+   * @maximum 90
+   */
+  latitude: number;
+  /**
+   * @minimum -180
+   * @maximum 180
+   */
+  longitude: number;
+}
+
+export interface LocationResponse {
+  message: string;
+  latitude: number;
+  longitude: number;
+}
+
+export interface NotificationLogItem {
+  id: number;
+  userId: number;
+  dealId: number;
+  channel: string;
+  status: string;
+  title: string;
+  body: string;
+  fcmMessageId?: string;
+  distanceKm?: string;
+  sentAt: string;
+}
+
+export interface NotificationLogResponse {
+  data: NotificationLogItem[];
+  count: number;
+}
+
+export interface TestNotificationResponse {
+  message: string;
+  messageId?: string;
+  simulated: boolean;
+  error?: string;
+}
+
 export type WhatsAppWebhookPayloadEntryItem = { [key: string]: unknown };
 
 export interface WhatsAppWebhookPayload {
@@ -455,6 +527,18 @@ export type MpesaCallback200 = {
 
 export type QueryPaymentStatusBody = {
   bookingId: number;
+};
+
+export type RegisterPushTokenBody = {
+  pushToken: string;
+};
+
+export type RegisterPushToken200 = {
+  message: string;
+};
+
+export type GetNotificationLogParams = {
+  limit?: number;
 };
 
 export type VerifyWhatsAppWebhookParams = {

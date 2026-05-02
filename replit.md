@@ -90,8 +90,8 @@ Auto-push script: `scripts/github-push.sh`
 | 7 | Customer auth + session management | ✅ Done |
 | 8 | Mpesa Daraja payment integration | ✅ Done |
 | 9 | WhatsApp Business bot (deal posting) | ✅ Done |
-| 10 | Push notification service (geo-aware) | ⏳ Next |
-| 11 | Next.js frontend — customer app | ⏳ Planned |
+| 10 | Push notification service (geo-aware) | ✅ Done |
+| 11 | Next.js frontend — customer app | ⏳ Next |
 | 12 | Venue dashboard + analytics UI | ⏳ Planned |
 | 13 | Standing deals (auto-activate) | ⏳ Planned |
 | 14 | Trending feed algorithms | ⏳ Planned |

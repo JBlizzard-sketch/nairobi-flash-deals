@@ -3,6 +3,8 @@ import { db } from "@workspace/db";
 import { dealsTable, venuesTable, insertDealSchema } from "@workspace/db/schema";
 import { eq, and, sql, desc, gt } from "drizzle-orm";
 import { z } from "zod";
+import { fanOutDealNotification } from "../lib/push-notifications";
+import { logger } from "../lib/logger";
 
 const router: IRouter = Router();
 
@@ -135,16 +137,49 @@ router.patch("/deals/:id", async (req, res) => {
 
 router.post("/deals/:id/publish", async (req, res) => {
   const id = Number(req.params.id);
+
+  // Join venue to get geo coords + category for notification fan-out
+  const [row] = await db
+    .select({ deal: dealsTable, venue: venuesTable })
+    .from(dealsTable)
+    .innerJoin(venuesTable, eq(dealsTable.venueId, venuesTable.id))
+    .where(eq(dealsTable.id, id));
+
+  if (!row) {
+    res.status(404).json({ message: "Deal not found" });
+    return;
+  }
+
   const [deal] = await db
     .update(dealsTable)
     .set({ status: "live", publishedAt: new Date(), updatedAt: new Date() })
     .where(eq(dealsTable.id, id))
     .returning();
-  if (!deal) {
-    res.status(404).json({ message: "Deal not found" });
-    return;
-  }
+
   res.json(withAvailableSlots(deal));
+
+  // Fire-and-forget notification fan-out after response is sent
+  setImmediate(async () => {
+    try {
+      const fanOut = await fanOutDealNotification({
+        dealId: deal.id,
+        venueId: row.venue.id,
+        venueName: row.venue.name,
+        venueCategory: row.venue.category,
+        venueLat: row.venue.latitude ? parseFloat(row.venue.latitude) : null,
+        venueLng: row.venue.longitude ? parseFloat(row.venue.longitude) : null,
+        dealTitle: deal.title,
+        dealPrice: Number(deal.dealPrice),
+        originalPrice: Number(deal.originalPrice),
+        discountPercent: deal.discountPercent,
+        slotsAvailable: deal.totalSlots - deal.bookedSlots,
+        endsAt: deal.endsAt,
+      });
+      logger.info({ dealId: deal.id, fanOut }, "Notification fan-out result");
+    } catch (err) {
+      logger.error({ err, dealId: deal.id }, "Notification fan-out failed");
+    }
+  });
 });
 
 router.post("/deals/:id/cancel", async (req, res) => {

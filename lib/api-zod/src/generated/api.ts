@@ -1935,6 +1935,99 @@ export const QueryPaymentStatusResponse = zod.object({
 });
 
 /**
+ * @summary Update deal category subscriptions
+ */
+
+export const UpdateNotificationPreferencesBody = zod.object({
+  subscriptionCategories: zod
+    .array(zod.enum(["restaurant", "spa", "bar", "fitness", "experience"]))
+    .min(1)
+    .optional(),
+  neighborhoodPref: zod.string().optional(),
+});
+
+export const UpdateNotificationPreferencesResponse = zod.object({
+  message: zod.string(),
+  preferences: zod.object({
+    id: zod.number(),
+    subscriptionCategories: zod.array(zod.string()),
+    neighborhoodPref: zod.string().optional(),
+  }),
+});
+
+/**
+ * @summary Update user lat/lng for geo-filtered notifications
+ */
+export const updateUserLocationBodyLatitudeMin = -90;
+export const updateUserLocationBodyLatitudeMax = 90;
+
+export const updateUserLocationBodyLongitudeMin = -180;
+export const updateUserLocationBodyLongitudeMax = 180;
+
+export const UpdateUserLocationBody = zod.object({
+  latitude: zod
+    .number()
+    .min(updateUserLocationBodyLatitudeMin)
+    .max(updateUserLocationBodyLatitudeMax),
+  longitude: zod
+    .number()
+    .min(updateUserLocationBodyLongitudeMin)
+    .max(updateUserLocationBodyLongitudeMax),
+});
+
+export const UpdateUserLocationResponse = zod.object({
+  message: zod.string(),
+  latitude: zod.number(),
+  longitude: zod.number(),
+});
+
+/**
+ * @summary Register or update FCM push token
+ */
+export const RegisterPushTokenBody = zod.object({
+  pushToken: zod.string(),
+});
+
+export const RegisterPushTokenResponse = zod.object({
+  message: zod.string(),
+});
+
+/**
+ * @summary List recent push notifications sent to the authenticated user
+ */
+export const GetNotificationLogQueryParams = zod.object({
+  limit: zod.coerce.number().optional(),
+});
+
+export const GetNotificationLogResponse = zod.object({
+  data: zod.array(
+    zod.object({
+      id: zod.number(),
+      userId: zod.number(),
+      dealId: zod.number(),
+      channel: zod.string(),
+      status: zod.string(),
+      title: zod.string(),
+      body: zod.string(),
+      fcmMessageId: zod.string().optional(),
+      distanceKm: zod.string().optional(),
+      sentAt: zod.coerce.date(),
+    }),
+  ),
+  count: zod.number(),
+});
+
+/**
+ * @summary Send a test push notification to yourself
+ */
+export const SendTestNotificationResponse = zod.object({
+  message: zod.string(),
+  messageId: zod.string().optional(),
+  simulated: zod.boolean(),
+  error: zod.string().optional(),
+});
+
+/**
  * Called by Meta during webhook registration to verify ownership.
  * @summary Meta webhook verification challenge
  */

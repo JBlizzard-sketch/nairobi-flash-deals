@@ -28,6 +28,7 @@ import type {
   Deal,
   DealListResponse,
   Error,
+  GetNotificationLogParams,
   HealthStatus,
   InitiatePaymentRequest,
   InitiatePaymentResponse,
@@ -35,17 +36,25 @@ import type {
   ListDealsParams,
   ListVenueRatingsParams,
   ListVenuesParams,
+  LocationRequest,
+  LocationResponse,
   LoginRequest,
   Logout200,
   MpesaCallback200,
   MpesaCallbackBody,
   NotFoundResponse,
+  NotificationLogResponse,
+  NotificationPreferencesRequest,
+  NotificationPreferencesResponse,
   OtpSentResponse,
   PaymentQueryResponse,
   QueryPaymentStatusBody,
   Rating,
   RatingListResponse,
+  RegisterPushToken200,
+  RegisterPushTokenBody,
   RegisterRequest,
+  TestNotificationResponse,
   UnauthorizedResponse,
   UpdateDealRequest,
   UpdateUserRequest,
@@ -2591,6 +2600,449 @@ export const useQueryPaymentStatus = <
   TContext
 > => {
   return useMutation(getQueryPaymentStatusMutationOptions(options));
+};
+
+/**
+ * @summary Update deal category subscriptions
+ */
+export const getUpdateNotificationPreferencesUrl = () => {
+  return `/api/notifications/preferences`;
+};
+
+export const updateNotificationPreferences = async (
+  notificationPreferencesRequest: NotificationPreferencesRequest,
+  options?: RequestInit,
+): Promise<NotificationPreferencesResponse> => {
+  return customFetch<NotificationPreferencesResponse>(
+    getUpdateNotificationPreferencesUrl(),
+    {
+      ...options,
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(notificationPreferencesRequest),
+    },
+  );
+};
+
+export const getUpdateNotificationPreferencesMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateNotificationPreferences>>,
+    TError,
+    { data: BodyType<NotificationPreferencesRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateNotificationPreferences>>,
+  TError,
+  { data: BodyType<NotificationPreferencesRequest> },
+  TContext
+> => {
+  const mutationKey = ["updateNotificationPreferences"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateNotificationPreferences>>,
+    { data: BodyType<NotificationPreferencesRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return updateNotificationPreferences(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateNotificationPreferencesMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateNotificationPreferences>>
+>;
+export type UpdateNotificationPreferencesMutationBody =
+  BodyType<NotificationPreferencesRequest>;
+export type UpdateNotificationPreferencesMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Update deal category subscriptions
+ */
+export const useUpdateNotificationPreferences = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateNotificationPreferences>>,
+    TError,
+    { data: BodyType<NotificationPreferencesRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateNotificationPreferences>>,
+  TError,
+  { data: BodyType<NotificationPreferencesRequest> },
+  TContext
+> => {
+  return useMutation(getUpdateNotificationPreferencesMutationOptions(options));
+};
+
+/**
+ * @summary Update user lat/lng for geo-filtered notifications
+ */
+export const getUpdateUserLocationUrl = () => {
+  return `/api/notifications/location`;
+};
+
+export const updateUserLocation = async (
+  locationRequest: LocationRequest,
+  options?: RequestInit,
+): Promise<LocationResponse> => {
+  return customFetch<LocationResponse>(getUpdateUserLocationUrl(), {
+    ...options,
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(locationRequest),
+  });
+};
+
+export const getUpdateUserLocationMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateUserLocation>>,
+    TError,
+    { data: BodyType<LocationRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateUserLocation>>,
+  TError,
+  { data: BodyType<LocationRequest> },
+  TContext
+> => {
+  const mutationKey = ["updateUserLocation"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateUserLocation>>,
+    { data: BodyType<LocationRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return updateUserLocation(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateUserLocationMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateUserLocation>>
+>;
+export type UpdateUserLocationMutationBody = BodyType<LocationRequest>;
+export type UpdateUserLocationMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Update user lat/lng for geo-filtered notifications
+ */
+export const useUpdateUserLocation = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateUserLocation>>,
+    TError,
+    { data: BodyType<LocationRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateUserLocation>>,
+  TError,
+  { data: BodyType<LocationRequest> },
+  TContext
+> => {
+  return useMutation(getUpdateUserLocationMutationOptions(options));
+};
+
+/**
+ * @summary Register or update FCM push token
+ */
+export const getRegisterPushTokenUrl = () => {
+  return `/api/notifications/push-token`;
+};
+
+export const registerPushToken = async (
+  registerPushTokenBody: RegisterPushTokenBody,
+  options?: RequestInit,
+): Promise<RegisterPushToken200> => {
+  return customFetch<RegisterPushToken200>(getRegisterPushTokenUrl(), {
+    ...options,
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(registerPushTokenBody),
+  });
+};
+
+export const getRegisterPushTokenMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof registerPushToken>>,
+    TError,
+    { data: BodyType<RegisterPushTokenBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof registerPushToken>>,
+  TError,
+  { data: BodyType<RegisterPushTokenBody> },
+  TContext
+> => {
+  const mutationKey = ["registerPushToken"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof registerPushToken>>,
+    { data: BodyType<RegisterPushTokenBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return registerPushToken(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RegisterPushTokenMutationResult = NonNullable<
+  Awaited<ReturnType<typeof registerPushToken>>
+>;
+export type RegisterPushTokenMutationBody = BodyType<RegisterPushTokenBody>;
+export type RegisterPushTokenMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Register or update FCM push token
+ */
+export const useRegisterPushToken = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof registerPushToken>>,
+    TError,
+    { data: BodyType<RegisterPushTokenBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof registerPushToken>>,
+  TError,
+  { data: BodyType<RegisterPushTokenBody> },
+  TContext
+> => {
+  return useMutation(getRegisterPushTokenMutationOptions(options));
+};
+
+/**
+ * @summary List recent push notifications sent to the authenticated user
+ */
+export const getGetNotificationLogUrl = (params?: GetNotificationLogParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/notifications/log?${stringifiedParams}`
+    : `/api/notifications/log`;
+};
+
+export const getNotificationLog = async (
+  params?: GetNotificationLogParams,
+  options?: RequestInit,
+): Promise<NotificationLogResponse> => {
+  return customFetch<NotificationLogResponse>(
+    getGetNotificationLogUrl(params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getGetNotificationLogQueryKey = (
+  params?: GetNotificationLogParams,
+) => {
+  return [`/api/notifications/log`, ...(params ? [params] : [])] as const;
+};
+
+export const getGetNotificationLogQueryOptions = <
+  TData = Awaited<ReturnType<typeof getNotificationLog>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: GetNotificationLogParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getNotificationLog>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetNotificationLogQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getNotificationLog>>
+  > = ({ signal }) => getNotificationLog(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getNotificationLog>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetNotificationLogQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getNotificationLog>>
+>;
+export type GetNotificationLogQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List recent push notifications sent to the authenticated user
+ */
+
+export function useGetNotificationLog<
+  TData = Awaited<ReturnType<typeof getNotificationLog>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: GetNotificationLogParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getNotificationLog>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetNotificationLogQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Send a test push notification to yourself
+ */
+export const getSendTestNotificationUrl = () => {
+  return `/api/notifications/test`;
+};
+
+export const sendTestNotification = async (
+  options?: RequestInit,
+): Promise<TestNotificationResponse> => {
+  return customFetch<TestNotificationResponse>(getSendTestNotificationUrl(), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getSendTestNotificationMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof sendTestNotification>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof sendTestNotification>>,
+  TError,
+  void,
+  TContext
+> => {
+  const mutationKey = ["sendTestNotification"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof sendTestNotification>>,
+    void
+  > = () => {
+    return sendTestNotification(requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SendTestNotificationMutationResult = NonNullable<
+  Awaited<ReturnType<typeof sendTestNotification>>
+>;
+
+export type SendTestNotificationMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Send a test push notification to yourself
+ */
+export const useSendTestNotification = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof sendTestNotification>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof sendTestNotification>>,
+  TError,
+  void,
+  TContext
+> => {
+  return useMutation(getSendTestNotificationMutationOptions(options));
 };
 
 /**

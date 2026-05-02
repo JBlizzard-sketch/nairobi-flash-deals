@@ -645,6 +645,111 @@ paths:
               schema:
                 $ref: "#/components/schemas/PaymentQueryResponse"
 
+  # ── Notifications ────────────────────────────────────────────
+  /notifications/preferences:
+    patch:
+      operationId: updateNotificationPreferences
+      tags: [notifications]
+      summary: Update deal category subscriptions
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NotificationPreferencesRequest"
+      responses:
+        "200":
+          description: Preferences updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotificationPreferencesResponse"
+
+  /notifications/location:
+    put:
+      operationId: updateUserLocation
+      tags: [notifications]
+      summary: Update user lat/lng for geo-filtered notifications
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LocationRequest"
+      responses:
+        "200":
+          description: Location updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LocationResponse"
+
+  /notifications/push-token:
+    put:
+      operationId: registerPushToken
+      tags: [notifications]
+      summary: Register or update FCM push token
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                pushToken:
+                  type: string
+              required: [pushToken]
+      responses:
+        "200":
+          description: Token registered
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: { type: string }
+                required: [message]
+
+  /notifications/log:
+    get:
+      operationId: getNotificationLog
+      tags: [notifications]
+      summary: List recent push notifications sent to the authenticated user
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: limit
+          schema: { type: number }
+      responses:
+        "200":
+          description: Notification history
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotificationLogResponse"
+
+  /notifications/test:
+    post:
+      operationId: sendTestNotification
+      tags: [notifications]
+      summary: Send a test push notification to yourself
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Test push result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TestNotificationResponse"
+
   # ── WhatsApp Bot ─────────────────────────────────────────────
   /whatsapp/webhook:
     get:
@@ -804,6 +909,88 @@ components:
         code:
           type: string
       required: [message]
+
+    NotificationPreferencesRequest:
+      type: object
+      properties:
+        subscriptionCategories:
+          type: array
+          items:
+            type: string
+            enum: [restaurant, spa, bar, fitness, experience]
+          minItems: 1
+        neighborhoodPref:
+          type: string
+
+    NotificationPreferencesResponse:
+      type: object
+      properties:
+        message: { type: string }
+        preferences:
+          type: object
+          properties:
+            id: { type: number }
+            subscriptionCategories:
+              type: array
+              items: { type: string }
+            neighborhoodPref: { type: string }
+          required: [id, subscriptionCategories]
+      required: [message, preferences]
+
+    LocationRequest:
+      type: object
+      properties:
+        latitude:
+          type: number
+          minimum: -90
+          maximum: 90
+        longitude:
+          type: number
+          minimum: -180
+          maximum: 180
+      required: [latitude, longitude]
+
+    LocationResponse:
+      type: object
+      properties:
+        message: { type: string }
+        latitude: { type: number }
+        longitude: { type: number }
+      required: [message, latitude, longitude]
+
+    NotificationLogItem:
+      type: object
+      properties:
+        id: { type: number }
+        userId: { type: number }
+        dealId: { type: number }
+        channel: { type: string }
+        status: { type: string }
+        title: { type: string }
+        body: { type: string }
+        fcmMessageId: { type: string }
+        distanceKm: { type: string }
+        sentAt: { type: string, format: date-time }
+      required: [id, userId, dealId, channel, status, title, body, sentAt]
+
+    NotificationLogResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/NotificationLogItem"
+        count: { type: number }
+      required: [data, count]
+
+    TestNotificationResponse:
+      type: object
+      properties:
+        message: { type: string }
+        messageId: { type: string }
+        simulated: { type: boolean }
+        error: { type: string }
+      required: [message, simulated]
 
     WhatsAppWebhookPayload:
       type: object
