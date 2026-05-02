@@ -1935,6 +1935,67 @@ export const QueryPaymentStatusResponse = zod.object({
 });
 
 /**
+ * Called by Meta during webhook registration to verify ownership.
+ * @summary Meta webhook verification challenge
+ */
+export const VerifyWhatsAppWebhookQueryParams = zod.object({
+  "hub.mode": zod.coerce.string().optional(),
+  "hub.verify_token": zod.coerce.string().optional(),
+  "hub.challenge": zod.coerce.string().optional(),
+});
+
+/**
+ * Called by Meta Cloud API when a venue sends a WhatsApp message.
+The bot parses the deal, asks for confirmation, then posts it live.
+Always responds 200 immediately (Meta requires < 20s ack).
+
+ * @summary Receive inbound WhatsApp messages from venues
+ */
+export const WhatsAppWebhookBody = zod.object({
+  object: zod.string(),
+  entry: zod.array(zod.object({}).passthrough()),
+});
+
+/**
+ * Lets you test the deal parser without a real WhatsApp account.
+Add `?parseOnly=1` to skip the DB lookup and only return parse results.
+
+ * @summary Dev/sandbox — simulate sending a deal message to the bot
+ */
+export const TestWhatsAppBotBody = zod.object({
+  phone: zod
+    .string()
+    .optional()
+    .describe("Simulate sending from this phone number (E.164)"),
+  venueWhatsapp: zod.string().optional().describe("Alias for phone"),
+  message: zod.string().describe("The deal text to parse"),
+});
+
+export const TestWhatsAppBotResponse = zod.object({
+  ok: zod.boolean(),
+  botResponse: zod.string().describe("What the bot would reply to the venue"),
+  parsedDeal: zod
+    .object({})
+    .passthrough()
+    .optional()
+    .describe("Structured deal extracted from the message"),
+  errors: zod
+    .array(
+      zod.object({
+        field: zod.string().optional(),
+        message: zod.string().optional(),
+      }),
+    )
+    .optional(),
+  venue: zod
+    .object({})
+    .passthrough()
+    .optional()
+    .describe("Matched venue (if phone is registered)"),
+  note: zod.string().optional(),
+});
+
+/**
  * @summary Submit a post-visit rating
  */
 export const CreateRatingBody = zod.object({

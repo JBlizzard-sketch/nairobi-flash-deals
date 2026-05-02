@@ -55,6 +55,10 @@ import type {
   VenueAnalytics,
   VenueListResponse,
   VerifyOtpRequest,
+  VerifyWhatsAppWebhookParams,
+  WhatsAppTestRequest,
+  WhatsAppTestResponse,
+  WhatsAppWebhookPayload,
 } from "./api.schemas";
 
 import { customFetch } from "../custom-fetch";
@@ -2587,6 +2591,286 @@ export const useQueryPaymentStatus = <
   TContext
 > => {
   return useMutation(getQueryPaymentStatusMutationOptions(options));
+};
+
+/**
+ * Called by Meta during webhook registration to verify ownership.
+ * @summary Meta webhook verification challenge
+ */
+export const getVerifyWhatsAppWebhookUrl = (
+  params?: VerifyWhatsAppWebhookParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/whatsapp/webhook?${stringifiedParams}`
+    : `/api/whatsapp/webhook`;
+};
+
+export const verifyWhatsAppWebhook = async (
+  params?: VerifyWhatsAppWebhookParams,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getVerifyWhatsAppWebhookUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getVerifyWhatsAppWebhookQueryKey = (
+  params?: VerifyWhatsAppWebhookParams,
+) => {
+  return [`/api/whatsapp/webhook`, ...(params ? [params] : [])] as const;
+};
+
+export const getVerifyWhatsAppWebhookQueryOptions = <
+  TData = Awaited<ReturnType<typeof verifyWhatsAppWebhook>>,
+  TError = ErrorType<BadRequestResponse>,
+>(
+  params?: VerifyWhatsAppWebhookParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof verifyWhatsAppWebhook>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getVerifyWhatsAppWebhookQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof verifyWhatsAppWebhook>>
+  > = ({ signal }) =>
+    verifyWhatsAppWebhook(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof verifyWhatsAppWebhook>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type VerifyWhatsAppWebhookQueryResult = NonNullable<
+  Awaited<ReturnType<typeof verifyWhatsAppWebhook>>
+>;
+export type VerifyWhatsAppWebhookQueryError = ErrorType<BadRequestResponse>;
+
+/**
+ * @summary Meta webhook verification challenge
+ */
+
+export function useVerifyWhatsAppWebhook<
+  TData = Awaited<ReturnType<typeof verifyWhatsAppWebhook>>,
+  TError = ErrorType<BadRequestResponse>,
+>(
+  params?: VerifyWhatsAppWebhookParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof verifyWhatsAppWebhook>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getVerifyWhatsAppWebhookQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * Called by Meta Cloud API when a venue sends a WhatsApp message.
+The bot parses the deal, asks for confirmation, then posts it live.
+Always responds 200 immediately (Meta requires < 20s ack).
+
+ * @summary Receive inbound WhatsApp messages from venues
+ */
+export const getWhatsAppWebhookUrl = () => {
+  return `/api/whatsapp/webhook`;
+};
+
+export const whatsAppWebhook = async (
+  whatsAppWebhookPayload: WhatsAppWebhookPayload,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getWhatsAppWebhookUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(whatsAppWebhookPayload),
+  });
+};
+
+export const getWhatsAppWebhookMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof whatsAppWebhook>>,
+    TError,
+    { data: BodyType<WhatsAppWebhookPayload> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof whatsAppWebhook>>,
+  TError,
+  { data: BodyType<WhatsAppWebhookPayload> },
+  TContext
+> => {
+  const mutationKey = ["whatsAppWebhook"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof whatsAppWebhook>>,
+    { data: BodyType<WhatsAppWebhookPayload> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return whatsAppWebhook(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type WhatsAppWebhookMutationResult = NonNullable<
+  Awaited<ReturnType<typeof whatsAppWebhook>>
+>;
+export type WhatsAppWebhookMutationBody = BodyType<WhatsAppWebhookPayload>;
+export type WhatsAppWebhookMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Receive inbound WhatsApp messages from venues
+ */
+export const useWhatsAppWebhook = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof whatsAppWebhook>>,
+    TError,
+    { data: BodyType<WhatsAppWebhookPayload> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof whatsAppWebhook>>,
+  TError,
+  { data: BodyType<WhatsAppWebhookPayload> },
+  TContext
+> => {
+  return useMutation(getWhatsAppWebhookMutationOptions(options));
+};
+
+/**
+ * Lets you test the deal parser without a real WhatsApp account.
+Add `?parseOnly=1` to skip the DB lookup and only return parse results.
+
+ * @summary Dev/sandbox — simulate sending a deal message to the bot
+ */
+export const getTestWhatsAppBotUrl = () => {
+  return `/api/whatsapp/test`;
+};
+
+export const testWhatsAppBot = async (
+  whatsAppTestRequest: WhatsAppTestRequest,
+  options?: RequestInit,
+): Promise<WhatsAppTestResponse> => {
+  return customFetch<WhatsAppTestResponse>(getTestWhatsAppBotUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(whatsAppTestRequest),
+  });
+};
+
+export const getTestWhatsAppBotMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof testWhatsAppBot>>,
+    TError,
+    { data: BodyType<WhatsAppTestRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof testWhatsAppBot>>,
+  TError,
+  { data: BodyType<WhatsAppTestRequest> },
+  TContext
+> => {
+  const mutationKey = ["testWhatsAppBot"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof testWhatsAppBot>>,
+    { data: BodyType<WhatsAppTestRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return testWhatsAppBot(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type TestWhatsAppBotMutationResult = NonNullable<
+  Awaited<ReturnType<typeof testWhatsAppBot>>
+>;
+export type TestWhatsAppBotMutationBody = BodyType<WhatsAppTestRequest>;
+export type TestWhatsAppBotMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Dev/sandbox — simulate sending a deal message to the bot
+ */
+export const useTestWhatsAppBot = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof testWhatsAppBot>>,
+    TError,
+    { data: BodyType<WhatsAppTestRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof testWhatsAppBot>>,
+  TError,
+  { data: BodyType<WhatsAppTestRequest> },
+  TContext
+> => {
+  return useMutation(getTestWhatsAppBotMutationOptions(options));
 };
 
 /**

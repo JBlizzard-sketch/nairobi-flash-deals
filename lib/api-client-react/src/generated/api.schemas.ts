@@ -14,6 +14,49 @@ export interface Error {
   code?: string;
 }
 
+export type WhatsAppWebhookPayloadEntryItem = { [key: string]: unknown };
+
+export interface WhatsAppWebhookPayload {
+  object: string;
+  entry: WhatsAppWebhookPayloadEntryItem[];
+}
+
+export interface WhatsAppTestRequest {
+  /** Simulate sending from this phone number (E.164) */
+  phone?: string;
+  /** Alias for phone */
+  venueWhatsapp?: string;
+  /** The deal text to parse */
+  message: string;
+}
+
+/**
+ * Structured deal extracted from the message
+ */
+export type WhatsAppTestResponseParsedDeal = { [key: string]: unknown };
+
+export type WhatsAppTestResponseErrorsItem = {
+  field?: string;
+  message?: string;
+};
+
+/**
+ * Matched venue (if phone is registered)
+ */
+export type WhatsAppTestResponseVenue = { [key: string]: unknown };
+
+export interface WhatsAppTestResponse {
+  ok: boolean;
+  /** What the bot would reply to the venue */
+  botResponse: string;
+  /** Structured deal extracted from the message */
+  parsedDeal?: WhatsAppTestResponseParsedDeal;
+  errors?: WhatsAppTestResponseErrorsItem[];
+  /** Matched venue (if phone is registered) */
+  venue?: WhatsAppTestResponseVenue;
+  note?: string;
+}
+
 export interface InitiatePaymentRequest {
   bookingId: number;
   /** E.164 format — +254XXXXXXXXX */
@@ -412,6 +455,12 @@ export type MpesaCallback200 = {
 
 export type QueryPaymentStatusBody = {
   bookingId: number;
+};
+
+export type VerifyWhatsAppWebhookParams = {
+  "hub.mode"?: string;
+  "hub.verify_token"?: string;
+  "hub.challenge"?: string;
 };
 
 export type ListVenueRatingsParams = {

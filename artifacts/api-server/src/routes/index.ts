@@ -6,6 +6,7 @@ import dealsRouter from "./deals";
 import bookingsRouter from "./bookings";
 import paymentsRouter from "./payments";
 import ratingsRouter from "./ratings";
+import whatsappRouter from "./whatsapp";
 
 const router: IRouter = Router();
 
@@ -16,5 +17,6 @@ router.use(dealsRouter);
 router.use(bookingsRouter);
 router.use(paymentsRouter);
 router.use(ratingsRouter);
+router.use(whatsappRouter);
 
 export default router;

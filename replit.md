@@ -89,8 +89,8 @@ Auto-push script: `scripts/github-push.sh`
 | 6 | Booking flow with slot reservation | ✅ Done |
 | 7 | Customer auth + session management | ✅ Done |
 | 8 | Mpesa Daraja payment integration | ✅ Done |
-| 9 | WhatsApp Business bot (deal posting) | ⏳ Next |
-| 10 | Push notification service (geo-aware) | ⏳ Planned |
+| 9 | WhatsApp Business bot (deal posting) | ✅ Done |
+| 10 | Push notification service (geo-aware) | ⏳ Next |
 | 11 | Next.js frontend — customer app | ⏳ Planned |
 | 12 | Venue dashboard + analytics UI | ⏳ Planned |
 | 13 | Standing deals (auto-activate) | ⏳ Planned |

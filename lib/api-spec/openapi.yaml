@@ -645,6 +645,68 @@ paths:
               schema:
                 $ref: "#/components/schemas/PaymentQueryResponse"
 
+  # ── WhatsApp Bot ─────────────────────────────────────────────
+  /whatsapp/webhook:
+    get:
+      operationId: verifyWhatsAppWebhook
+      tags: [whatsapp]
+      summary: Meta webhook verification challenge
+      description: Called by Meta during webhook registration to verify ownership.
+      parameters:
+        - in: query
+          name: hub.mode
+          schema: { type: string }
+        - in: query
+          name: hub.verify_token
+          schema: { type: string }
+        - in: query
+          name: hub.challenge
+          schema: { type: string }
+      responses:
+        "200":
+          description: Challenge echoed back to Meta
+        "403":
+          $ref: "#/components/responses/BadRequest"
+    post:
+      operationId: whatsAppWebhook
+      tags: [whatsapp]
+      summary: Receive inbound WhatsApp messages from venues
+      description: |
+        Called by Meta Cloud API when a venue sends a WhatsApp message.
+        The bot parses the deal, asks for confirmation, then posts it live.
+        Always responds 200 immediately (Meta requires < 20s ack).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WhatsAppWebhookPayload"
+      responses:
+        "200":
+          description: Acknowledged
+
+  /whatsapp/test:
+    post:
+      operationId: testWhatsAppBot
+      tags: [whatsapp]
+      summary: Dev/sandbox — simulate sending a deal message to the bot
+      description: |
+        Lets you test the deal parser without a real WhatsApp account.
+        Add `?parseOnly=1` to skip the DB lookup and only return parse results.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WhatsAppTestRequest"
+      responses:
+        "200":
+          description: Bot response and parse result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WhatsAppTestResponse"
+
   # ── Ratings ──────────────────────────────────────────────────
   /ratings:
     post:
@@ -742,6 +804,56 @@ components:
         code:
           type: string
       required: [message]
+
+    WhatsAppWebhookPayload:
+      type: object
+      properties:
+        object:
+          type: string
+        entry:
+          type: array
+          items:
+            type: object
+      required: [object, entry]
+
+    WhatsAppTestRequest:
+      type: object
+      properties:
+        phone:
+          type: string
+          description: Simulate sending from this phone number (E.164)
+        venueWhatsapp:
+          type: string
+          description: Alias for phone
+        message:
+          type: string
+          description: The deal text to parse
+      required: [message]
+
+    WhatsAppTestResponse:
+      type: object
+      properties:
+        ok:
+          type: boolean
+        botResponse:
+          type: string
+          description: What the bot would reply to the venue
+        parsedDeal:
+          type: object
+          description: Structured deal extracted from the message
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              field: { type: string }
+              message: { type: string }
+        venue:
+          type: object
+          description: Matched venue (if phone is registered)
+        note:
+          type: string
+      required: [ok, botResponse]
 
     InitiatePaymentRequest:
       type: object
