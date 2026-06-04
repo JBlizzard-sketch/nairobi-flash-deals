@@ -3,9 +3,23 @@ import { differenceInSeconds, formatDistanceToNowStrict } from "date-fns";
 import { Deal } from "@workspace/api-client-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Clock, Users, Flame, Share2 } from "lucide-react";
+import { MapPin, Clock, Users, Flame, Share2, Heart, Star } from "lucide-react";
 import { Link } from "wouter";
 import { cn } from "@/lib/utils";
+
+function useWishlist() {
+  const KEY = "nfd_wishlist";
+  const [ids, setIds] = useState<Set<number>>(() => {
+    try { return new Set(JSON.parse(localStorage.getItem(KEY) ?? "[]")); } catch { return new Set(); }
+  });
+  const toggle = (id: number) => setIds((prev) => {
+    const next = new Set(prev);
+    next.has(id) ? next.delete(id) : next.add(id);
+    localStorage.setItem(KEY, JSON.stringify([...next]));
+    return next;
+  });
+  return { ids, toggle };
+}
 
 interface DealCardProps {
   deal: Deal;
@@ -14,6 +28,7 @@ interface DealCardProps {
 }
 
 export function DealCard({ deal, featured = false, isTrending = false }: DealCardProps) {
+  const { ids: wishlistIds, toggle: toggleWishlist } = useWishlist();
   const [timeLeft, setTimeLeft] = useState<number>(0);
   const endsAt = new Date(deal.endsAt);
 
@@ -29,6 +44,7 @@ export function DealCard({ deal, featured = false, isTrending = false }: DealCar
   }, [deal.endsAt]);
 
   const isEndingSoon = timeLeft > 0 && timeLeft < 3600; // less than 1 hour
+  const isCritical = timeLeft > 0 && timeLeft < 300; // less than 5 min
 
   const formatTimeLeft = (seconds: number) => {
     if (seconds <= 0) return "Expired";
@@ -74,6 +90,7 @@ export function DealCard({ deal, featured = false, isTrending = false }: DealCar
           
           <div className={cn(
             "absolute top-3 right-3 flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold backdrop-blur-md",
+            isCritical ? "bg-red-600 text-white animate-bounce ring-2 ring-red-400 ring-offset-1" :
             isEndingSoon ? "bg-red-500/90 text-white animate-pulse" : "bg-black/50 text-white"
           )}>
             <Clock className="h-3.5 w-3.5" />
@@ -83,6 +100,11 @@ export function DealCard({ deal, featured = false, isTrending = false }: DealCar
           <div className="absolute bottom-0 w-full p-4 text-white">
             <div className="flex items-center gap-1 text-sm text-gray-300 mb-1">
               <span className="font-medium text-white">{deal.venue?.name}</span>
+              {deal.venue?.averageRating && Number(deal.venue.averageRating) > 0 && (
+                <span className="flex items-center text-yellow-400 text-xs">
+                  <Star className="h-2.5 w-2.5 fill-yellow-400 mr-0.5" />{Number(deal.venue.averageRating).toFixed(1)}
+                </span>
+              )}
               <span>•</span>
               <span className="flex items-center capitalize"><MapPin className="h-3 w-3 mr-0.5" /> {deal.venue?.neighborhood?.replace('_', ' ')}</span>
             </div>
@@ -113,13 +135,23 @@ export function DealCard({ deal, featured = false, isTrending = false }: DealCar
                 if (navigator.share) {
                   navigator.share({ title: deal.title, text: `${deal.title} — KES ${parseInt(deal.dealPrice).toLocaleString()} (${deal.discountPercent}% off) at ${deal.venue?.name ?? ""}`, url }).catch(() => {});
                 } else {
-                  navigator.clipboard?.writeText(url);
+                  const msg = encodeURIComponent(`${deal.title} — KES ${parseInt(deal.dealPrice).toLocaleString()} (${deal.discountPercent}% off) at ${deal.venue?.name ?? ""}. Book now: ${url}`);
+                  window.open(`https://wa.me/?text=${msg}`, "_blank");
                 }
               }}
               className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors mt-1"
               title="Share deal"
             >
               <Share2 className="h-3.5 w-3.5" /> Share
+            </button>
+            <button
+              type="button"
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleWishlist(deal.id); }}
+              className={cn("flex items-center gap-1 text-xs transition-colors mt-1", wishlistIds.has(deal.id) ? "text-rose-500" : "text-muted-foreground hover:text-rose-400")}
+              title={wishlistIds.has(deal.id) ? "Remove from saved" : "Save deal"}
+            >
+              <Heart className={cn("h-3.5 w-3.5", wishlistIds.has(deal.id) && "fill-rose-500")} />
+              {wishlistIds.has(deal.id) ? "Saved" : "Save"}
             </button>
           </div>
         </CardContent>

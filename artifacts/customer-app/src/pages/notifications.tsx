@@ -21,7 +21,13 @@ function channelIcon(channel: string) {
 
 export default function NotificationsPage() {
   const { isAuthenticated, isLoading: authLoading } = useAuth();
-  const [lastSeen] = useState<Date>(getLastSeen);
+  const [lastSeen, setLastSeen] = useState<Date>(getLastSeen);
+
+  function markAllRead() {
+    const now = new Date();
+    localStorage.setItem(LS_KEY, now.toISOString());
+    setLastSeen(now);
+  }
 
   const { data, isLoading } = useGetNotificationLog({ limit: 100 }, { query: { enabled: isAuthenticated } });
   const notifications = data?.data ?? [];
@@ -31,11 +37,18 @@ export default function NotificationsPage() {
 
   return (
     <div className="container max-w-lg py-6 space-y-4 min-h-screen pb-24">
-      <div>
-        <h1 className="text-2xl font-bold">Notifications</h1>
-        <p className="text-muted-foreground text-sm">
-          {notifications.length} notification{notifications.length !== 1 ? "s" : ""}
-        </p>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold">Notifications</h1>
+          <p className="text-muted-foreground text-sm">
+            {notifications.length} notification{notifications.length !== 1 ? "s" : ""}
+          </p>
+        </div>
+        {notifications.some((n) => new Date(n.sentAt) > lastSeen) && (
+          <button type="button" className="text-xs text-primary font-medium mt-1 hover:underline" onClick={markAllRead}>
+            Mark all read
+          </button>
+        )}
       </div>
 
       {isLoading ? (

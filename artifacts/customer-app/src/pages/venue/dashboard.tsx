@@ -1,14 +1,15 @@
 import { useLocation } from "wouter";
-import { useListDeals, useGetVenue, useGetVenueAnalytics, useListBookings } from "@workspace/api-client-react";
+import { useListDeals, useGetVenue, useGetVenueAnalytics, useListBookings, useCancelDeal, useCreateDeal, usePublishDeal, getListDealsQueryKey } from "@workspace/api-client-react";
 import { useAuth } from "@/hooks/use-auth";
 import { Redirect } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { TrendingUp, Users, Ticket, Plus, Clock, BarChart3, ArrowRight, ScanLine } from "lucide-react";
+import { TrendingUp, Users, Ticket, Plus, Clock, BarChart3, ArrowRight, ScanLine, Copy, XCircle } from "lucide-react";
 import { differenceInSeconds, format } from "date-fns";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 
 function CountdownBadge({ endsAt }: { endsAt: string }) {
   const [secs, setSecs] = useState(() => Math.max(0, differenceInSeconds(new Date(endsAt), new Date())));
@@ -31,11 +32,59 @@ export default function VenueDashboard() {
   const [, setLocation] = useLocation();
 
   const venueId = (user as { managedVenueId?: number } | undefined)?.managedVenueId;
+  const qc = useQueryClient();
+  const cancelDeal = useCancelDeal();
+  const createDeal = useCreateDeal();
+
+  const publishDeal = usePublishDeal();
+
+  const handlePublishDeal = useCallback((dealId: number) => {
+    publishDeal.mutate({ id: dealId }, {
+      onSuccess: () => qc.invalidateQueries({ queryKey: getListDealsQueryKey() }),
+    });
+  }, [publishDeal, qc]);
+
+  const handleCancelDeal = useCallback((dealId: number) => {
+    if (!confirm("Cancel this deal? Active bookings will be notified.")) return;
+    cancelDeal.mutate({ id: dealId }, {
+      onSuccess: () => qc.invalidateQueries({ queryKey: getListDealsQueryKey() }),
+    });
+  }, [cancelDeal, qc]);
+
+  const handleDuplicateDeal = useCallback((deal: { title: string; description?: string | null; category: string; originalPrice: string; dealPrice: string; discountPercent: number; totalSlots: number }) => {
+    if (!venueId) return;
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(14, 0, 0, 0);
+    const end = new Date(tomorrow);
+    end.setHours(17, 0, 0, 0);
+    createDeal.mutate({
+      data: {
+        venueId,
+        title: `${deal.title} (copy)`,
+        description: deal.description ?? "",
+        category: deal.category as import("@workspace/api-client-react").DealCategory,
+        originalPrice: deal.originalPrice,
+        dealPrice: deal.dealPrice,
+        discountPercent: deal.discountPercent,
+        totalSlots: deal.totalSlots,
+        startsAt: tomorrow.toISOString(),
+        endsAt: end.toISOString(),
+        isStanding: false,
+      }
+    }, {
+      onSuccess: () => qc.invalidateQueries({ queryKey: getListDealsQueryKey() }),
+    });
+  }, [createDeal, venueId, qc]);
 
   const { data: venueData } = useGetVenue(venueId ?? 0, { query: { enabled: !!venueId } });
   const { data: analyticsData } = useGetVenueAnalytics(venueId ?? 0, { query: { enabled: !!venueId } });
   const { data: dealsData, isLoading: dealsLoading } = useListDeals(
     { venueId: venueId ?? 0, limit: 10 },
+    { query: { enabled: !!venueId } }
+  );
+  const { data: draftDealsData } = useListDeals(
+    { venueId: venueId ?? 0, status: "draft" as import("@workspace/api-client-react").DealStatus, limit: 5 },
     { query: { enabled: !!venueId } }
   );
   const { data: bookingsData } = useListBookings(
@@ -60,8 +109,33 @@ export default function VenueDashboard() {
     { label: "Active Today", value: dealsData?.data?.length ?? 0, icon: Users, color: "text-orange-500" },
   ];
 
+  const venueStatus = (venue as { status?: string } | undefined)?.status;
+
   return (
     <div className="container py-6 pb-24 space-y-6">
+      {/* Pending approval banner */}
+      {venueStatus === "pending_approval" && (
+        <div className="rounded-xl border border-amber-300 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-700 p-4 space-y-3">
+          <div className="flex items-center gap-2">
+            <Clock className="h-5 w-5 text-amber-600" />
+            <p className="font-semibold text-amber-900 dark:text-amber-400">Pending approval</p>
+          </div>
+          <p className="text-sm text-amber-800 dark:text-amber-500">Your venue is under review. You can prepare while you wait:</p>
+          <ul className="space-y-1.5 text-sm">
+            {[
+              { done: !!venue?.name, label: "Venue name set" },
+              { done: !!venue?.description, label: "Description added" },
+              { done: !!venue?.coverImage, label: "Cover image uploaded" },
+              { done: !!venue?.address, label: "Address filled in" },
+            ].map((item) => (
+              <li key={item.label} className={`flex items-center gap-2 ${item.done ? "text-green-700 dark:text-green-400" : "text-amber-700 dark:text-amber-500"}`}>
+                <span>{item.done ? "✓" : "○"}</span> {item.label}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">{venue?.name ?? "My Venue"}</h1>
@@ -110,12 +184,34 @@ export default function VenueDashboard() {
               return (
                 <Card key={deal.id} className="overflow-hidden">
                   <CardContent className="p-4">
-                    <div className="flex items-start justify-between gap-2 mb-3">
+                    <div className="flex items-start justify-between gap-2 mb-2">
                       <div className="flex-1 min-w-0">
                         <p className="font-semibold truncate">{deal.title}</p>
                         <p className="text-xs text-muted-foreground capitalize">{deal.category} · -{deal.discountPercent}%</p>
                       </div>
                       <CountdownBadge endsAt={deal.endsAt} />
+                    </div>
+                    <div className="flex gap-2 mb-2">
+                      <button
+                        type="button"
+                        onClick={() => handleDuplicateDeal(deal)}
+                        disabled={createDeal.isPending}
+                        className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-primary transition-colors"
+                        title="Duplicate deal for tomorrow"
+                      >
+                        <Copy className="h-3 w-3" /> Duplicate
+                      </button>
+                      {deal.status === "live" && (
+                        <button
+                          type="button"
+                          onClick={() => handleCancelDeal(deal.id)}
+                          disabled={cancelDeal.isPending}
+                          className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-destructive transition-colors"
+                          title="Cancel this deal"
+                        >
+                          <XCircle className="h-3 w-3" /> Cancel
+                        </button>
+                      )}
                     </div>
                     <div className="space-y-1">
                       <div className="flex justify-between text-xs text-muted-foreground">
@@ -149,18 +245,32 @@ export default function VenueDashboard() {
               See all <ArrowRight className="h-3 w-3 ml-1" />
             </Button>
           </div>
+          {(() => {
+            const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
+            const todayBookings = bookingsData.data.filter((b) => new Date(b.createdAt) >= todayStart);
+            return todayBookings.length > 0 ? (
+              <div className="mb-3 px-3 py-2 bg-primary/5 border border-primary/20 rounded-lg flex items-center gap-2">
+                <span className="text-xl">🔥</span>
+                <p className="text-sm"><strong className="text-primary">{todayBookings.length}</strong> new booking{todayBookings.length !== 1 ? "s" : ""} today</p>
+              </div>
+            ) : null;
+          })()}
           <div className="space-y-2">
-            {bookingsData.data.slice(0, 3).map((b) => (
-              <div key={b.id} className="flex items-center justify-between p-3 border rounded-lg">
+            {bookingsData.data.slice(0, 3).map((b) => {
+              const isToday = new Date(b.createdAt) >= (() => { const d = new Date(); d.setHours(0,0,0,0); return d; })();
+              return (
+              <div key={b.id} className={`flex items-center justify-between p-3 border rounded-lg ${isToday ? "border-primary/30 bg-primary/3" : ""}`}>
                 <div>
                   <p className="font-mono text-sm font-bold">{b.confirmationCode}</p>
                   <p className="text-xs text-muted-foreground">{(b as { deal?: { title?: string } }).deal?.title ?? "Deal"} · {b.slots} slot{b.slots > 1 ? "s" : ""}</p>
+                  {isToday && <span className="text-[10px] text-primary font-semibold uppercase tracking-wide">Today</span>}
                 </div>
                 <Badge variant={b.status === "confirmed" ? "default" : b.status === "checked_in" ? "secondary" : "outline"} className="text-[10px] uppercase">
                   {b.status.replace(/_/g, " ")}
                 </Badge>
               </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}

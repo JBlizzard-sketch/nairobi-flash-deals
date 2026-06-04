@@ -86,7 +86,8 @@ export default function Auth() {
           setAuthToken(data.token);
           sessionStorage.removeItem("nfd_ref");
           toast({ title: "Success", description: "Successfully authenticated" });
-          setLocation("/");
+          const params = new URLSearchParams(search);
+          setLocation(params.get("returnTo") ?? "/");
         },
         onError: (err) => {
           toast({ title: "Error", description: err.message, variant: "destructive" });

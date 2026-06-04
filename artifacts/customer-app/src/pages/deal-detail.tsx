@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useLocation, Link } from "wouter";
-import { useGetDeal, useCreateBooking, useListVenueRatings, useJoinWaitlist, useLeaveWaitlist, useCheckWaitlistStatus, getCheckWaitlistStatusQueryKey } from "@workspace/api-client-react";
+import { useGetDeal, useCreateBooking, useListVenueRatings, useJoinWaitlist, useLeaveWaitlist, useCheckWaitlistStatus, getCheckWaitlistStatusQueryKey, useListDeals, useCreateRating } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -34,11 +34,18 @@ export default function DealDetail() {
   const queryClient = useQueryClient();
   const { data: deal, isLoading, error } = useGetDeal(dealId);
   const createBooking = useCreateBooking();
+  const createRating = useCreateRating();
+  const [ratingPromptBookingId, setRatingPromptBookingId] = useState<number | null>(null);
+  const [ratingScore, setRatingScore] = useState(0);
+  const [ratingHover, setRatingHover] = useState(0);
+  const [ratingComment, setRatingComment] = useState("");
   const joinWaitlist = useJoinWaitlist();
   const leaveWaitlist = useLeaveWaitlist();
   const { data: waitlistStatus } = useCheckWaitlistStatus(dealId, { query: { enabled: isAuthenticated && dealId > 0 } });
   const venueId = deal?.venueId ?? 0;
   const { data: ratingsData } = useListVenueRatings(venueId, { limit: 5 }, { query: { enabled: !!venueId } });
+  const { data: venueDealsList } = useListDeals({ venueId: venueId || undefined, limit: 5 }, { query: { enabled: !!venueId && !!deal } });
+  const { data: categoryDealsList } = useListDeals({ category: (deal?.category as import("@workspace/api-client-react").DealCategory) || undefined, limit: 6 }, { query: { enabled: !!deal?.category } });
 
   const [timeLeft, setTimeLeft] = useState<number>(0);
   const [slots, setSlots] = useState(1);
@@ -49,6 +56,16 @@ export default function DealDetail() {
   useEffect(() => {
     if (user?.phone) setPhone(user.phone);
   }, [user]);
+
+  // Track recently viewed
+  useEffect(() => {
+    if (!dealId || !deal) return;
+    try {
+      const prev: number[] = JSON.parse(localStorage.getItem("nfd_recently_viewed") ?? "[]");
+      const next = [dealId, ...prev.filter((id) => id !== dealId)].slice(0, 10);
+      localStorage.setItem("nfd_recently_viewed", JSON.stringify(next));
+    } catch { /* noop */ }
+  }, [dealId, deal?.id]);
 
   useEffect(() => {
     if (!deal) return;
@@ -102,7 +119,7 @@ export default function DealDetail() {
   const handleBook = (e: React.FormEvent) => {
     e.preventDefault();
     if (!isAuthenticated) {
-      setLocation("/auth");
+      setLocation(`/auth?returnTo=/deals/${dealId}`);
       return;
     }
     if (!phone) {
@@ -114,6 +131,8 @@ export default function DealDetail() {
       {
         onSuccess: (data) => {
           setIsBookingOpen(false);
+          const bookingId = (data as { id?: number }).id ?? null;
+          setRatingPromptBookingId(bookingId);
           setConfirmedBooking({
             confirmationCode: data.confirmationCode,
             slots,
@@ -180,6 +199,59 @@ export default function DealDetail() {
             <Share2 className="w-4 h-4" />
           </Button>
         </div>
+        {/* Post-booking rating prompt */}
+        {ratingPromptBookingId && (
+          <div className="w-full max-w-sm bg-card border rounded-2xl p-5 space-y-4">
+            <div className="text-center">
+              <p className="font-semibold">How was your experience?</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Rate the deal before you go</p>
+            </div>
+            <div className="flex justify-center gap-1">
+              {[1, 2, 3, 4, 5].map((n) => (
+                <button
+                  key={n}
+                  type="button"
+                  onMouseEnter={() => setRatingHover(n)}
+                  onMouseLeave={() => setRatingHover(0)}
+                  onClick={() => setRatingScore(n)}
+                  className="transition-transform hover:scale-110"
+                >
+                  <Star className={`h-8 w-8 ${n <= (ratingHover || ratingScore) ? "fill-primary text-primary" : "text-muted-foreground/30"}`} />
+                </button>
+              ))}
+            </div>
+            {ratingScore > 0 && (
+              <>
+                <textarea
+                  className="w-full text-sm border rounded-lg px-3 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-primary/30 bg-background"
+                  rows={2}
+                  placeholder="Leave a comment (optional)"
+                  value={ratingComment}
+                  onChange={(e) => setRatingComment(e.target.value)}
+                />
+                <Button className="w-full" size="sm" disabled={createRating.isPending}
+                  onClick={() => {
+                    createRating.mutate({
+                      data: { bookingId: ratingPromptBookingId, score: ratingScore, comment: ratingComment || undefined }
+                    }, {
+                      onSuccess: () => {
+                        setRatingPromptBookingId(null);
+                        toast({ title: "Thanks for your review! 🌟", description: "Your feedback helps other customers." });
+                      },
+                      onError: () => setRatingPromptBookingId(null),
+                    });
+                  }}
+                >
+                  {createRating.isPending ? "Submitting..." : "Submit Review"}
+                </Button>
+              </>
+            )}
+            <button type="button" className="w-full text-xs text-muted-foreground hover:text-foreground" onClick={() => setRatingPromptBookingId(null)}>
+              Skip for now
+            </button>
+          </div>
+        )}
+
         <Button variant="ghost" onClick={() => setLocation("/")}>Back to deals</Button>
       </div>
     );
@@ -244,14 +316,29 @@ export default function DealDetail() {
           >
             <Clock className="h-4 w-4" /> {formatTimeLeft(timeLeft)} left
           </Badge>
-          <button
-            type="button"
-            onClick={handleShareDeal}
-            className="ml-auto p-2 rounded-full bg-background/80 hover:bg-background border shadow-sm transition-colors"
-            title="Share this deal"
-          >
-            <Share2 className="h-4 w-4" />
-          </button>
+          <div className="ml-auto flex items-center gap-1">
+            <button
+              type="button"
+              onClick={() => {
+                const url = `${window.location.origin}/deals/${dealId}`;
+                const msg = encodeURIComponent(`${deal?.title ?? ""} — KES ${deal ? parseInt(deal.dealPrice).toLocaleString() : ""} (${deal?.discountPercent}% off) at ${deal?.venue?.name ?? ""}. Book now: ${url}`);
+                window.open(`https://wa.me/?text=${msg}`, "_blank");
+              }}
+              className="flex items-center gap-1 text-xs px-2 py-1.5 rounded-full bg-green-500 text-white hover:bg-green-600 transition-colors font-medium"
+              title="Share on WhatsApp"
+            >
+              <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 fill-current" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.123.553 4.114 1.524 5.843L.057 23.57a.75.75 0 0 0 .92.92l5.734-1.467A11.944 11.944 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22a9.944 9.944 0 0 1-5.073-1.386l-.363-.216-3.763.963.982-3.65-.237-.378A9.956 9.956 0 0 1 2 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/></svg>
+              WhatsApp
+            </button>
+            <button
+              type="button"
+              onClick={handleShareDeal}
+              className="p-2 rounded-full bg-background/80 hover:bg-background border shadow-sm transition-colors"
+              title="Share this deal"
+            >
+              <Share2 className="h-4 w-4" />
+            </button>
+          </div>
         </div>
 
         <div>
@@ -442,6 +529,48 @@ export default function DealDetail() {
                       </div>
                     )}
                   </div>
+                ))}
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* More from this venue */}
+        {venueDealsList?.data && venueDealsList.data.filter((d) => d.id !== dealId).length > 0 && (
+          <>
+            <Separator />
+            <div className="space-y-3 pb-4">
+              <h3 className="text-xl font-bold">More from {deal?.venue?.name}</h3>
+              <div className="space-y-3">
+                {venueDealsList.data.filter((d) => d.id !== dealId).slice(0, 3).map((d) => (
+                  <Link key={d.id} href={`/deals/${d.id}`} className="flex items-center gap-3 p-3 border rounded-xl hover:border-primary/40 transition-colors">
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-sm truncate">{d.title}</p>
+                      <p className="text-xs text-muted-foreground">KES {parseInt(d.dealPrice).toLocaleString()} · -{d.discountPercent}%</p>
+                    </div>
+                    <Badge variant="destructive" className="shrink-0 text-xs">-{d.discountPercent}%</Badge>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* More in this category */}
+        {categoryDealsList?.data && categoryDealsList.data.filter((d) => d.id !== dealId && d.venueId !== venueId).length > 0 && (
+          <>
+            <Separator />
+            <div className="space-y-3 pb-4">
+              <h3 className="text-xl font-bold capitalize">More {deal?.category?.replace(/_/g, " ")} Deals</h3>
+              <div className="space-y-3">
+                {categoryDealsList.data.filter((d) => d.id !== dealId && d.venueId !== venueId).slice(0, 3).map((d) => (
+                  <Link key={d.id} href={`/deals/${d.id}`} className="flex items-center gap-3 p-3 border rounded-xl hover:border-primary/40 transition-colors">
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-sm truncate">{d.title}</p>
+                      <p className="text-xs text-muted-foreground">{d.venue?.name} · KES {parseInt(d.dealPrice).toLocaleString()}</p>
+                    </div>
+                    <Badge variant="secondary" className="shrink-0 text-xs">-{d.discountPercent}%</Badge>
+                  </Link>
                 ))}
               </div>
             </div>

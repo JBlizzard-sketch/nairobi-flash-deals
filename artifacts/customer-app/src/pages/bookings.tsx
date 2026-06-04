@@ -1,12 +1,12 @@
 import { useState } from "react";
 import { useListBookings, useCreateRating, getListBookingsQueryKey, useGetMyWaitlist, useLeaveWaitlist, getGetMyWaitlistQueryKey } from "@workspace/api-client-react";
 import { useAuth } from "@/hooks/use-auth";
-import { Redirect, useLocation } from "wouter";
+import { Redirect, useLocation, Link } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Ticket, MapPin, Calendar, Clock, Star, Bell, BellOff, ChevronRight, QrCode } from "lucide-react";
+import { Ticket, MapPin, Calendar, Clock, Star, Bell, BellOff, ChevronRight, QrCode, CalendarPlus } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { format } from "date-fns";
 import {
@@ -70,6 +70,7 @@ export default function Bookings() {
   const { user, isAuthenticated, isLoading: authLoading } = useAuth();
   const [, setLocation] = useLocation();
   const [activeTab, setActiveTab] = useState<"bookings" | "waitlist">("bookings");
+  const [statusFilter, setStatusFilter] = useState<"all" | "upcoming" | "past" | "cancelled">("all");
   const params = { limit: 50 };
   const { data, isLoading } = useListBookings(params);
   const { data: waitlistData, isLoading: waitlistLoading } = useGetMyWaitlist();
@@ -171,9 +172,32 @@ export default function Bookings() {
             ))}
           </div>
         ) : data?.data && data.data.length > 0 ? (
+          <div className="space-y-4">
+            {/* Status filter pills */}
+            <div className="flex gap-2 overflow-x-auto pb-1 hide-scrollbar">
+              {(["all", "upcoming", "past", "cancelled"] as const).map((f) => (
+                <button
+                  key={f}
+                  onClick={() => setStatusFilter(f)}
+                  className={`px-3 py-1.5 rounded-full text-xs font-medium capitalize transition-colors whitespace-nowrap border ${
+                    statusFilter === f
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "border-border text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {f === "all" ? "All" : f.charAt(0).toUpperCase() + f.slice(1)}
+                </button>
+              ))}
+            </div>
           <div className="grid gap-4">
             {data.data
-              .filter((b) => !userId || b.userId === userId)
+              .filter((b) => {
+                if (userId && b.userId !== userId) return false;
+                if (statusFilter === "cancelled") return b.status === "cancelled" || b.status === "refunded";
+                if (statusFilter === "upcoming") return b.status === "confirmed" || b.status === "pending_payment";
+                if (statusFilter === "past") return b.status === "checked_in" || b.status === "completed";
+                return true;
+              })
               .map((booking) => (
                 <Card key={booking.id} className="overflow-hidden">
                   <div className="bg-primary/10 p-4 border-b flex justify-between items-center gap-3">
@@ -224,6 +248,29 @@ export default function Bookings() {
                         KES {parseInt(booking.totalAmount).toLocaleString()} paid
                       </span>
                     </div>
+                    {(booking.status === "confirmed" || booking.status === "pending_payment") && (() => {
+                      const start = new Date(booking.createdAt);
+                      const end = new Date(start.getTime() + 2 * 60 * 60 * 1000);
+                      const fmt = (d: Date) => d.toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
+                      const ics = `BEGIN:VCALENDAR\nVERSION:2.0\nBEGIN:VEVENT\nSUMMARY:${booking.deal?.title ?? "Flash Deal"} at ${booking.venue?.name ?? ""}\nDTSTART:${fmt(start)}\nDTEND:${fmt(end)}\nDESCRIPTION:Confirmation code: ${booking.confirmationCode}\nEND:VEVENT\nEND:VCALENDAR`;
+                      const handleAddToCalendar = () => {
+                        const blob = new Blob([ics], { type: "text/calendar" });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement("a");
+                        a.href = url; a.download = `nfd-booking-${booking.confirmationCode}.ics`;
+                        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+                        URL.revokeObjectURL(url);
+                      };
+                      return (
+                        <button
+                          type="button"
+                          onClick={handleAddToCalendar}
+                          className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary transition-colors mt-1"
+                        >
+                          <CalendarPlus className="h-3.5 w-3.5" /> Add to calendar
+                        </button>
+                      );
+                    })()}
 
                     {ratedIds.has(booking.id) ? (
                       <div className="flex items-center gap-1.5 text-sm text-muted-foreground pt-1">
@@ -246,9 +293,16 @@ export default function Bookings() {
                         <Star className="h-4 w-4" /> Rate your experience
                       </Button>
                     ) : null}
+                    {/* Book Again — past/completed bookings */}
+                    {(booking.status === "checked_in" || booking.status === "completed") && booking.dealId && (
+                      <Link href={`/deals/${booking.dealId}`} className="flex items-center gap-1.5 text-xs text-primary hover:underline mt-1 font-medium">
+                        <Ticket className="h-3.5 w-3.5" /> Book again
+                      </Link>
+                    )}
                   </CardContent>
                 </Card>
               ))}
+          </div>
           </div>
         ) : (
           <div className="text-center py-20 space-y-4">

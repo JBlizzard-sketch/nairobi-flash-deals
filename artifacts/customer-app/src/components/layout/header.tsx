@@ -1,11 +1,13 @@
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
-import { User, LayoutDashboard, ShieldCheck } from "lucide-react";
+import { User, LayoutDashboard, ShieldCheck, Sun, Moon } from "lucide-react";
 import { NotificationBell } from "@/components/notification-bell";
+import { useTheme } from "next-themes";
 
 export function Header() {
   const [location] = useLocation();
   const { isAuthenticated, user } = useAuth();
+  const { theme, setTheme } = useTheme();
   const role = (user as { role?: string } | undefined)?.role;
   const isVenueManager = role === "venue_manager";
   const isAdmin = role === "admin";
@@ -53,6 +55,14 @@ export function Header() {
               Sign In
             </Link>
           )}
+          <button
+            type="button"
+            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+            className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
+            title="Toggle theme"
+          >
+            {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+          </button>
         </nav>
       </div>
     </header>

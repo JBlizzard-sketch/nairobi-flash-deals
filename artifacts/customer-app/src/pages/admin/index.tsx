@@ -91,10 +91,10 @@ export default function AdminDashboard() {
         <>
           {/* KPI cards — row 1: revenue */}
           <div className="grid grid-cols-2 gap-3">
-            <StatCard label="Month Revenue" value={`KES ${stats.bookings.monthRevenue.toLocaleString()}`} sub={`KES ${stats.bookings.monthCommission.toLocaleString()} commission`} icon={DollarSign} iconColor="text-green-600" />
-            <StatCard label="All-time Revenue" value={`KES ${stats.bookings.totalRevenue.toLocaleString()}`} sub={`KES ${stats.bookings.totalCommission.toLocaleString()} commission`} icon={TrendingUp} iconColor="text-primary" />
+            <StatCard label="Month Revenue" value={`KES ${stats.bookings.monthRevenue.toLocaleString()}`} sub={`KES ${stats.bookings.monthCommission.toLocaleString()} commission`} icon={DollarSign} iconColor="text-green-600" onClick={() => setLocation("/admin/revenue")} />
+            <StatCard label="All-time Revenue" value={`KES ${stats.bookings.totalRevenue.toLocaleString()}`} sub={`KES ${stats.bookings.totalCommission.toLocaleString()} commission`} icon={TrendingUp} iconColor="text-primary" onClick={() => setLocation("/admin/revenue")} />
             <StatCard label="Bookings This Month" value={stats.bookings.monthBookings} sub={`${stats.bookings.total} total all-time`} icon={Ticket} iconColor="text-blue-600" onClick={() => setLocation("/admin/bookings")} />
-            <StatCard label="Registered Users" value={stats.users.total} sub={`${stats.users.customers} customers · ${stats.users.managers} managers`} icon={Users} iconColor="text-orange-500" />
+            <StatCard label="Registered Users" value={stats.users.total} sub={`${stats.users.customers} customers · ${stats.users.managers} managers`} icon={Users} iconColor="text-orange-500" onClick={() => setLocation("/admin/users")} />
           </div>
 
           {/* Venue status summary */}
@@ -117,10 +117,12 @@ export default function AdminDashboard() {
           {/* Deal status pills */}
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-sm font-medium text-muted-foreground">Live deals:</span>
-            <Badge className="bg-primary/10 text-primary border-0">{stats.deals.live} live</Badge>
-            <Badge className="bg-orange-100 text-orange-800 border-0">{stats.deals.fillingFast} filling fast</Badge>
-            <Badge className="bg-red-100 text-red-800 border-0">{stats.deals.soldOut} sold out</Badge>
-            <span className="text-xs text-muted-foreground ml-auto">{stats.deals.total} total deals</span>
+            <Badge className="bg-primary/10 text-primary border-0 cursor-pointer" onClick={() => setLocation("/admin/deals?status=live")}>{stats.deals.live} live</Badge>
+            <Badge className="bg-orange-100 text-orange-800 border-0 cursor-pointer" onClick={() => setLocation("/admin/deals")}>{stats.deals.fillingFast} filling fast</Badge>
+            <Badge className="bg-red-100 text-red-800 border-0 cursor-pointer" onClick={() => setLocation("/admin/deals")}>{stats.deals.soldOut} sold out</Badge>
+            <Button variant="ghost" size="sm" className="ml-auto text-xs" onClick={() => setLocation("/admin/deals")}>
+              Manage deals <ArrowRight className="h-3 w-3 ml-1" />
+            </Button>
           </div>
 
           {/* 7-day revenue area chart */}

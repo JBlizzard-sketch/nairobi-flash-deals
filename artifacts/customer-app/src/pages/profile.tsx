@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { Redirect, useLocation } from "wouter";
 import { useLogout, useGetMyReferralStats } from "@workspace/api-client-react";
@@ -7,8 +8,53 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
-import { LogOut, Phone, Star, Settings, Trophy, Zap, Gift, Copy, Share2, Users, CheckCircle2 } from "lucide-react";
+import { LogOut, Phone, Star, Settings, Trophy, Zap, Gift, Copy, Share2, Users, CheckCircle2, Bell, BellOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+
+function PushNotificationCard() {
+  const { toast } = useToast();
+  const [permission, setPermission] = useState<NotificationPermission>(
+    typeof Notification !== "undefined" ? Notification.permission : "default"
+  );
+
+  const handleRequest = async () => {
+    const result = await Notification.requestPermission();
+    setPermission(result);
+    if (result === "granted") {
+      toast({ title: "Notifications enabled!", description: "You'll get alerts for deals near you." });
+    }
+  };
+
+  if (permission === "granted") {
+    return (
+      <Card>
+        <CardContent className="p-4 flex items-center gap-3">
+          <Bell className="h-5 w-5 text-primary" />
+          <div>
+            <p className="text-sm font-semibold">Push notifications on</p>
+            <p className="text-xs text-muted-foreground">You'll be notified when new deals drop</p>
+          </div>
+          <Badge variant="secondary" className="ml-auto text-green-700 bg-green-100 border-0">Active</Badge>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (permission === "denied") return null;
+
+  return (
+    <Card className="border-primary/30 bg-primary/5">
+      <CardContent className="p-4 flex items-center gap-3">
+        <BellOff className="h-5 w-5 text-muted-foreground shrink-0" />
+        <div className="flex-1">
+          <p className="text-sm font-semibold">Enable deal alerts</p>
+          <p className="text-xs text-muted-foreground">Get notified the moment a deal drops near you</p>
+        </div>
+        <Button size="sm" onClick={handleRequest} className="shrink-0">Enable</Button>
+      </CardContent>
+    </Card>
+  );
+}
 
 type LoyaltyTier = "bronze" | "silver" | "gold" | "platinum";
 
@@ -238,6 +284,33 @@ export default function Profile() {
               </p>
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      {/* Push notification opt-in */}
+      {"Notification" in window && (
+        <PushNotificationCard />
+      )}
+
+      {/* Quick links */}
+      <Card>
+        <CardContent className="p-0">
+          {[
+            { label: "My Reviews", icon: Star, href: "/reviews" },
+            { label: "Notifications", icon: Bell, href: "/notifications" },
+            { label: "Settings", icon: Settings, href: "/settings" },
+          ].map(({ label, icon: Icon, href }) => (
+            <button
+              key={href}
+              type="button"
+              onClick={() => setLocation(href)}
+              className="w-full flex items-center gap-3 px-4 py-3.5 hover:bg-muted/50 transition-colors border-b last:border-b-0"
+            >
+              <Icon className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm font-medium">{label}</span>
+              <span className="ml-auto text-muted-foreground text-xs">›</span>
+            </button>
+          ))}
         </CardContent>
       </Card>
 

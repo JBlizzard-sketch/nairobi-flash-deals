@@ -1,4 +1,5 @@
-import { useState, useDeferredValue } from "react";
+import { useState, useDeferredValue, useRef, useEffect } from "react";
+import { differenceInSeconds } from "date-fns";
 import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from "wouter";
 import { useListDeals, useGetTrendingDeals } from "@workspace/api-client-react";
@@ -8,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AlertCircle, Search, X, Flame, Navigation, Loader2 } from "lucide-react";
+import { AlertCircle, Search, X, Flame, Navigation, Loader2, Clock, Utensils, Zap, Smile, Gift } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 
@@ -66,11 +67,36 @@ const PRICE_RANGES = [
 
 export default function Home() {
   const [searchInput, setSearchInput] = useState("");
+  const [searchFocused, setSearchFocused] = useState(false);
+  const [recentSearches, setRecentSearches] = useState<string[]>(() => {
+    try { return JSON.parse(localStorage.getItem("nfd_recent_searches") ?? "[]"); } catch { return []; }
+  });
+  const searchRef = useRef<HTMLDivElement>(null);
   const [activeCategory, setActiveCategory] = useState<string>("all");
   const [activeNeighborhood, setActiveNeighborhood] = useState<string>("all");
   const [activePriceRange, setActivePriceRange] = useState<string>("any");
+  const [sortBy, setSortBy] = useState<"default" | "price_asc" | "price_desc" | "discount">("default");
   const [nearMeLoading, setNearMeLoading] = useState(false);
   const [nearMeActive, setNearMeActive] = useState(false);
+
+  const saveRecentSearch = (term: string) => {
+    if (!term.trim() || term.length < 2) return;
+    setRecentSearches((prev) => {
+      const next = [term, ...prev.filter((s) => s !== term)].slice(0, 5);
+      localStorage.setItem("nfd_recent_searches", JSON.stringify(next));
+      return next;
+    });
+  };
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
+        setSearchFocused(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
   const { isAuthenticated } = useAuth();
   const [, setLocation] = useLocation();
   const { data: trendingData } = useGetTrendingDeals();
@@ -134,14 +160,30 @@ export default function Home() {
       <div className="bg-background/95 backdrop-blur border-b sticky top-14 z-40 space-y-0">
         <div className="container py-3">
           <div className="flex gap-2 items-center">
-            <div className="relative flex-1">
+            <div className="relative flex-1" ref={searchRef}>
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
+                onFocus={() => setSearchFocused(true)}
+                onKeyDown={(e) => { if (e.key === "Enter" && searchInput.trim()) { saveRecentSearch(searchInput.trim()); setSearchFocused(false); } }}
                 placeholder="Search deals, venues…"
                 className="pl-9 pr-9 rounded-full bg-muted/60 border-0 focus-visible:ring-1"
               />
+              {searchFocused && !searchInput && recentSearches.length > 0 && (
+                <div className="absolute top-full left-0 right-0 mt-1.5 z-50 bg-background border rounded-xl shadow-lg overflow-hidden">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground px-3 pt-2 pb-1">Recent</p>
+                  {recentSearches.map((s) => (
+                    <button
+                      key={s}
+                      className="w-full text-left px-3 py-2 text-sm hover:bg-muted flex items-center gap-2"
+                      onClick={() => { setSearchInput(s); setSearchFocused(false); }}
+                    >
+                      <Search className="h-3 w-3 text-muted-foreground" /> {s}
+                    </button>
+                  ))}
+                </div>
+              )}
               {searchInput && (
                 <button
                   onClick={() => setSearchInput("")}
@@ -227,12 +269,146 @@ export default function Home() {
                 Clear {activeFilterCount > 1 ? `(${activeFilterCount})` : ""}
               </Button>
             )}
+            <span className="text-xs text-muted-foreground font-medium ml-2 shrink-0 border-l pl-3">Sort</span>
+            {(["default", "discount", "price_asc", "price_desc"] as const).map((s) => (
+              <Badge
+                key={s}
+                variant={sortBy === s ? "secondary" : "outline"}
+                className={`cursor-pointer text-xs py-1 px-3 rounded-full transition-all shrink-0 ${sortBy === s ? "bg-primary/15 text-primary border-primary/30" : ""}`}
+                onClick={() => setSortBy(s)}
+              >
+                {s === "default" ? "Trending" : s === "discount" ? "Best Deal" : s === "price_asc" ? "Price ↑" : "Price ↓"}
+              </Badge>
+            ))}
           </div>
           <ScrollBar orientation="horizontal" className="invisible" />
         </ScrollArea>
       </div>
 
       <main className="flex-1 container py-6 space-y-8">
+        {/* Hero banner — guests only */}
+        {!isAuthenticated && activeFilterCount === 0 && !deferredSearch && (
+          <section className="relative rounded-2xl overflow-hidden bg-gradient-to-br from-primary/15 via-primary/5 to-background border border-primary/20 p-6 md:p-8">
+            <div className="relative z-10 max-w-sm">
+              <p className="text-xs font-bold uppercase tracking-widest text-primary mb-2">Nairobi's #1 Flash Deals</p>
+              <h2 className="text-2xl md:text-3xl font-extrabold leading-tight mb-3">
+                Dead-hour deals at the city's best spots
+              </h2>
+              <p className="text-sm text-muted-foreground mb-5">
+                Premium restaurants, spas &amp; wellness venues post limited offers during quiet hours. Book in under 60 seconds.
+              </p>
+              <div className="flex gap-3 flex-wrap">
+                <Button onClick={() => setLocation("/auth")} size="sm" className="rounded-full">
+                  Sign up free
+                </Button>
+                <Button variant="outline" size="sm" className="rounded-full" onClick={() => {
+                  document.getElementById("deals-grid")?.scrollIntoView({ behavior: "smooth" });
+                }}>
+                  Browse deals
+                </Button>
+              </div>
+            </div>
+            <div className="absolute -right-4 -bottom-4 text-[120px] opacity-[0.06] select-none pointer-events-none">🍽️</div>
+          </section>
+        )}
+        {/* Flash Deal of the Day — most discounted live deal */}
+        {activeFilterCount === 0 && !deferredSearch && (() => {
+          type DealItem = NonNullable<typeof data>["data"][0];
+          const featured = (data?.data ?? []).reduce<DealItem | null>((best, d) => {
+            if (!best) return d;
+            return d.discountPercent > best.discountPercent ? d : best;
+          }, null);
+          if (!featured || featured.discountPercent < 40) return null;
+          return (
+            <section>
+              <div className="flex items-center gap-2 mb-3">
+                <Zap className="h-5 w-5 text-primary" />
+                <h2 className="text-xl font-bold">Deal of the Day</h2>
+                <span className="text-xs text-muted-foreground ml-auto">Best discount</span>
+              </div>
+              <div className="w-full">
+                <DealCard deal={featured} featured />
+              </div>
+            </section>
+          );
+        })()}
+
+        {/* Referral CTA — authenticated users, no active filters */}
+        {isAuthenticated && activeFilterCount === 0 && !deferredSearch && (
+          <div className="flex items-center gap-3 bg-primary/8 border border-primary/20 rounded-xl px-4 py-3">
+            <Gift className="h-5 w-5 text-primary shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold">Earn 150 pts per referral</p>
+              <p className="text-xs text-muted-foreground">Share your code and earn when friends book</p>
+            </div>
+            <Button size="sm" variant="outline" className="shrink-0 text-xs" onClick={() => setLocation("/profile")}>
+              Share code
+            </Button>
+          </div>
+        )}
+
+        {/* For You — personalized deals based on recently viewed categories */}
+        {isAuthenticated && activeFilterCount === 0 && !deferredSearch && (() => {
+          let recentIds: number[] = [];
+          try { recentIds = JSON.parse(localStorage.getItem("nfd_recently_viewed") ?? "[]"); } catch { /* noop */ }
+          if (recentIds.length === 0) return null;
+          const allDeals = data?.data ?? [];
+          const viewedCategories = [...new Set(recentIds.map((id) => allDeals.find((d) => d.id === id)?.category).filter(Boolean))];
+          if (viewedCategories.length === 0) return null;
+          const forYouDeals = allDeals
+            .filter((d) => !recentIds.includes(d.id) && viewedCategories.includes(d.category))
+            .slice(0, 5);
+          if (forYouDeals.length === 0) return null;
+          return (
+            <section className="space-y-3">
+              <div className="flex items-center gap-2">
+                <Zap className="h-5 w-5 text-primary" />
+                <h2 className="text-xl font-bold">For You</h2>
+                <span className="text-xs text-muted-foreground">based on what you've browsed</span>
+              </div>
+              <ScrollArea className="w-full whitespace-nowrap">
+                <div className="flex gap-4 pb-3">
+                  {forYouDeals.map((deal) => (
+                    <div key={deal.id} className="w-64 shrink-0">
+                      <DealCard deal={deal} />
+                    </div>
+                  ))}
+                </div>
+                <ScrollBar orientation="horizontal" />
+              </ScrollArea>
+            </section>
+          );
+        })()}
+
+        {/* Recently Viewed — read from localStorage, filter live deals */}
+        {activeFilterCount === 0 && !deferredSearch && (() => {
+          let recentIds: number[] = [];
+          try { recentIds = JSON.parse(localStorage.getItem("nfd_recently_viewed") ?? "[]"); } catch { /* noop */ }
+          if (recentIds.length === 0) return null;
+          const recentDeals = recentIds
+            .map((id) => (data?.data ?? []).find((d) => d.id === id))
+            .filter(Boolean) as NonNullable<typeof data>["data"];
+          if (recentDeals.length === 0) return null;
+          return (
+            <section className="space-y-3">
+              <div className="flex items-center gap-2">
+                <Clock className="h-5 w-5 text-muted-foreground" />
+                <h2 className="text-xl font-bold">Recently Viewed</h2>
+              </div>
+              <ScrollArea className="w-full whitespace-nowrap">
+                <div className="flex gap-4 pb-3">
+                  {recentDeals.slice(0, 5).map((deal) => (
+                    <div key={deal.id} className="w-64 shrink-0">
+                      <DealCard deal={deal} />
+                    </div>
+                  ))}
+                </div>
+                <ScrollBar orientation="horizontal" />
+              </ScrollArea>
+            </section>
+          );
+        })()}
+
         {/* Trending strip — shown when no filters are active */}
         {activeFilterCount === 0 && !deferredSearch && trendingData?.data && trendingData.data.length > 0 && (
           <section className="space-y-3">
@@ -251,6 +427,54 @@ export default function Home() {
               </div>
               <ScrollBar orientation="horizontal" />
             </ScrollArea>
+          </section>
+        )}
+
+        {/* Ending Soon strip — live deals with < 60 min left */}
+        {activeFilterCount === 0 && !deferredSearch && (() => {
+          const endingSoon = (data?.data ?? []).filter((d) => {
+            const s = differenceInSeconds(new Date(d.endsAt), new Date());
+            return s > 0 && s < 3600;
+          });
+          if (endingSoon.length === 0) return null;
+          return (
+            <section className="space-y-3">
+              <div className="flex items-center gap-2">
+                <Clock className="h-5 w-5 text-destructive animate-pulse" />
+                <h2 className="text-xl font-bold text-destructive">Ending Soon</h2>
+                <span className="text-xs text-muted-foreground">grab these before they're gone</span>
+              </div>
+              <ScrollArea className="w-full whitespace-nowrap">
+                <div className="flex gap-4 pb-3">
+                  {endingSoon.slice(0, 5).map((deal) => (
+                    <div key={deal.id} className="w-64 shrink-0">
+                      <DealCard deal={deal} />
+                    </div>
+                  ))}
+                </div>
+                <ScrollBar orientation="horizontal" />
+              </ScrollArea>
+            </section>
+          );
+        })()}
+
+        {/* How it works — guests only, no filters active */}
+        {!isAuthenticated && activeFilterCount === 0 && !deferredSearch && (
+          <section className="grid grid-cols-3 gap-4 py-2">
+            {[
+              { icon: Utensils, label: "Browse", desc: "Top venues post deals during quiet hours" },
+              { icon: Zap, label: "Book in 60s", desc: "Pay via Mpesa, get a confirmation instantly" },
+              { icon: Smile, label: "Show up & enjoy", desc: "Just arrive and present your code" },
+            ].map((step, i) => (
+              <div key={step.label} className="flex flex-col items-center text-center gap-2 p-3">
+                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center relative">
+                  <step.icon className="h-5 w-5 text-primary" />
+                  <span className="absolute -top-1 -right-1 text-[10px] font-bold bg-primary text-primary-foreground rounded-full w-4 h-4 flex items-center justify-center">{i + 1}</span>
+                </div>
+                <p className="text-xs font-bold">{step.label}</p>
+                <p className="text-[11px] text-muted-foreground leading-tight">{step.desc}</p>
+              </div>
+            ))}
           </section>
         )}
 
@@ -293,7 +517,12 @@ export default function Home() {
           </div>
         ) : data?.data && data.data.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {data.data.map((deal, index) => (
+            {[...data.data].sort((a, b) => {
+              if (sortBy === "discount") return b.discountPercent - a.discountPercent;
+              if (sortBy === "price_asc") return parseInt(a.dealPrice) - parseInt(b.dealPrice);
+              if (sortBy === "price_desc") return parseInt(b.dealPrice) - parseInt(a.dealPrice);
+              return 0;
+            }).map((deal, index) => (
               <DealCard
                 key={deal.id}
                 deal={deal}
