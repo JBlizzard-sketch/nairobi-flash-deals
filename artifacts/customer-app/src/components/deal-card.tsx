@@ -3,16 +3,17 @@ import { differenceInSeconds, formatDistanceToNowStrict } from "date-fns";
 import { Deal } from "@workspace/api-client-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Clock, Users } from "lucide-react";
+import { MapPin, Clock, Users, Flame } from "lucide-react";
 import { Link } from "wouter";
 import { cn } from "@/lib/utils";
 
 interface DealCardProps {
   deal: Deal;
   featured?: boolean;
+  isTrending?: boolean;
 }
 
-export function DealCard({ deal, featured = false }: DealCardProps) {
+export function DealCard({ deal, featured = false, isTrending = false }: DealCardProps) {
   const [timeLeft, setTimeLeft] = useState<number>(0);
   const endsAt = new Date(deal.endsAt);
 
@@ -59,7 +60,12 @@ export function DealCard({ deal, featured = false }: DealCardProps) {
             <Badge variant="destructive" className="font-bold">
               -{deal.discountPercent}%
             </Badge>
-            {deal.status === 'filling_fast' && (
+            {isTrending && (
+              <Badge className="bg-orange-500 text-white border-none font-bold flex items-center gap-1">
+                <Flame className="h-3 w-3" /> Trending
+              </Badge>
+            )}
+            {!isTrending && deal.status === 'filling_fast' && (
               <Badge variant="secondary" className="bg-orange-500 text-white border-none">
                 Filling Fast
               </Badge>

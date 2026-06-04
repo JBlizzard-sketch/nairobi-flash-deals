@@ -7,6 +7,7 @@ import {
   integer,
   numeric,
   boolean,
+  real,
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
@@ -57,9 +58,13 @@ export const dealsTable = pgTable("deals", {
   standingEndHour: integer("standing_end_hour"),
   autoActivateThreshold: integer("auto_activate_threshold"),
 
+  // Dynamic pricing
+  baseDealPrice: numeric("base_deal_price", { precision: 10, scale: 2 }),
+
   // Engagement tracking
   viewCount: integer("view_count").notNull().default(0),
   notificationsSent: integer("notifications_sent").notNull().default(0),
+  hotScore: real("hot_score").notNull().default(0),
 
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),

@@ -1,12 +1,12 @@
 import { useState, useDeferredValue } from "react";
-import { useListDeals } from "@workspace/api-client-react";
+import { useListDeals, useGetTrendingDeals } from "@workspace/api-client-react";
 import { DealCard } from "@/components/deal-card";
 import { DealCategory, VenueNeighborhood } from "@workspace/api-client-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AlertCircle, Search, X } from "lucide-react";
+import { AlertCircle, Search, X, Flame } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 
@@ -47,6 +47,7 @@ export default function Home() {
   const [activeCategory, setActiveCategory] = useState<string>("all");
   const [activeNeighborhood, setActiveNeighborhood] = useState<string>("all");
   const [activePriceRange, setActivePriceRange] = useState<string>("any");
+  const { data: trendingData } = useGetTrendingDeals();
 
   const deferredSearch = useDeferredValue(searchInput);
   const priceRange = PRICE_RANGES.find((p) => p.id === activePriceRange) ?? PRICE_RANGES[0];
@@ -165,7 +166,28 @@ export default function Home() {
         </ScrollArea>
       </div>
 
-      <main className="flex-1 container py-6 space-y-6">
+      <main className="flex-1 container py-6 space-y-8">
+        {/* Trending strip — shown when no filters are active */}
+        {activeFilterCount === 0 && !deferredSearch && trendingData?.data && trendingData.data.length > 0 && (
+          <section className="space-y-3">
+            <div className="flex items-center gap-2">
+              <Flame className="h-5 w-5 text-orange-500" />
+              <h2 className="text-xl font-bold">Trending Now</h2>
+              <span className="text-xs text-muted-foreground">hottest right now</span>
+            </div>
+            <ScrollArea className="w-full whitespace-nowrap">
+              <div className="flex gap-4 pb-3">
+                {trendingData.data.slice(0, 5).map((deal) => (
+                  <div key={deal.id} className="w-64 shrink-0">
+                    <DealCard deal={deal} isTrending />
+                  </div>
+                ))}
+              </div>
+              <ScrollBar orientation="horizontal" />
+            </ScrollArea>
+          </section>
+        )}
+
         <div className="flex items-end justify-between">
           <div>
             <h2 className="text-3xl font-bold tracking-tight mb-1">

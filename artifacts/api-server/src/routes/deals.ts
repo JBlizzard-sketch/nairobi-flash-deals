@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
 import { db } from "@workspace/db";
 import { dealsTable, venuesTable, insertDealSchema } from "@workspace/db/schema";
-import { eq, and, sql, desc, gt, ilike, or, gte, lte } from "drizzle-orm";
+import { eq, and, sql, desc, gt, ilike, or, gte, lte, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { fanOutDealNotification } from "../lib/push-notifications";
 import { logger } from "../lib/logger";
@@ -79,21 +79,17 @@ router.get("/deals", async (req, res) => {
 
 router.get("/deals/trending", async (_req, res) => {
   const now = new Date();
-  const data = await db
-    .select()
+  const rows = await db
+    .select({ deal: dealsTable, venue: venuesTable })
     .from(dealsTable)
-    .where(
-      and(
-        eq(dealsTable.status, "live"),
-        gt(dealsTable.endsAt, now),
-      ),
-    )
-    .orderBy(desc(dealsTable.bookedSlots))
+    .leftJoin(venuesTable, eq(dealsTable.venueId, venuesTable.id))
+    .where(and(inArray(dealsTable.status, ["live", "filling_fast"]), gt(dealsTable.endsAt, now)))
+    .orderBy(desc(dealsTable.hotScore))
     .limit(10);
 
   res.json({
-    data: data.map((d) => ({ ...d, availableSlots: d.totalSlots - d.bookedSlots, venue: null })),
-    pagination: { total: data.length, limit: 10, offset: 0 },
+    data: rows.map((r) => ({ ...r.deal, availableSlots: r.deal.totalSlots - r.deal.bookedSlots, venue: r.venue })),
+    pagination: { total: rows.length, limit: 10, offset: 0 },
   });
 });
 

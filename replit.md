@@ -98,14 +98,14 @@ pnpm workspace monorepo using TypeScript. Each package manages its own dependenc
 | 9 | WhatsApp Business bot (deal posting) | ✅ Done |
 | 10 | Push notification service (geo-aware) | ✅ Done |
 | 11 | React/Vite customer app — deals feed, booking, auth | ✅ Done |
-| 12 | Venue dashboard + analytics UI | ⏳ Planned |
-| 13 | Standing deals (auto-activate) | ⏳ Planned |
-| 14 | Trending feed algorithms | ⏳ Planned |
-| 15 | Post-visit ratings UI | ⏳ Planned |
-| 16 | Loyalty tiers for repeat customers | ⏳ Planned |
-| 17 | Concierge / corporate booking | ⏳ Planned |
-| 18 | White-label for hotel chains | ⏳ Planned |
-| 19 | WhatsApp NLP deal parser | ⏳ Planned |
-| 20 | Production hardening + launch | ⏳ Planned |
+| 12 | Venue dashboard + analytics UI | ✅ Done |
+| 13 | Admin control panel | ✅ Done |
+| 14 | Referral system + deal sharing | ✅ Done |
+| 15 | Waitlist + cancellation recovery | ✅ Done |
+| 16 | Trending feed algorithm (hot_score cron, 🔥 badge) | ✅ Done |
+| 17 | Standing deals auto-activate (schedule cron) | ✅ Done |
+| 18 | Dynamic last-minute pricing (price-drop cron) | ✅ Done |
+| 19 | Loyalty tiers (Bronze/Silver/Gold/Platinum UI) | ✅ Done |
+| 20 | Production hardening (helmet, rate limiting, error boundary, graceful shutdown) | ✅ Done |
 
 See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details.

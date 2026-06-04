@@ -1,0 +1,3 @@
+- [Auth conventions](auth-conventions.md) — req.auth (not req.user), JWT payload: {userId, phone, role}
+- [Orval queryKey TS errors](orval-querykey-errors.md) — pre-existing Orval TS2741 errors in customer-app are non-blocking; runtime works fine
+- [Background crons pattern](background-crons.md) — trending/standing/price-drop crons are started in app.ts via startX() functions, all imported from lib/
