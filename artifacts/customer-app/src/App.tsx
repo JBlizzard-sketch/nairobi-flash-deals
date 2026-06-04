@@ -16,9 +16,11 @@ import VenueBookings from "@/pages/venue/venue-bookings";
 import VenueAnalytics from "@/pages/venue/analytics";
 import VenueCheckin from "@/pages/venue/checkin";
 import NotificationsPage from "@/pages/notifications";
+import VenueProfile from "@/pages/venue-profile";
 import AdminDashboard from "@/pages/admin/index";
 import AdminVenues from "@/pages/admin/venues";
 import AdminBookings from "@/pages/admin/bookings";
+import AdminUsers from "@/pages/admin/users";
 
 const queryClient = new QueryClient();
 
@@ -39,9 +41,11 @@ function Router() {
           <Route path="/venue/analytics" component={VenueAnalytics} />
           <Route path="/venue/checkin" component={VenueCheckin} />
           <Route path="/notifications" component={NotificationsPage} />
+          <Route path="/venues/:id" component={VenueProfile} />
           <Route path="/admin" component={AdminDashboard} />
           <Route path="/admin/venues" component={AdminVenues} />
           <Route path="/admin/bookings" component={AdminBookings} />
+          <Route path="/admin/users" component={AdminUsers} />
           <Route component={NotFound} />
         </Switch>
       </main>

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, useLocation } from "wouter";
+import { useParams, useLocation, Link } from "wouter";
 import { useGetDeal, useCreateBooking, useListVenueRatings, useJoinWaitlist, useLeaveWaitlist, useCheckWaitlistStatus, getCheckWaitlistStatusQueryKey } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -7,7 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { MapPin, Clock, Users, Star, ArrowLeft, Plus, Minus, Ticket, CheckCircle2, Share2, Bell, BellOff } from "lucide-react";
+import { MapPin, Clock, Users, Star, ArrowLeft, Plus, Minus, Ticket, CheckCircle2, Share2, Bell, BellOff, Flame, Zap } from "lucide-react";
 import { differenceInSeconds } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
@@ -87,6 +87,17 @@ export default function DealDetail() {
   };
 
   const isUrgent = timeLeft > 0 && timeLeft < 30 * 60;
+
+  const handleShareDeal = () => {
+    const url = `${window.location.origin}/deals/${dealId}`;
+    const text = `Check out this flash deal: ${deal?.title ?? ""} at ${deal?.venue?.name ?? ""} — only KES ${deal ? parseInt(deal.dealPrice).toLocaleString() : ""} (${deal?.discountPercent}% off)! Book now: ${url}`;
+    if (navigator.share) {
+      navigator.share({ title: deal?.title ?? "Flash Deal", text, url }).catch(() => {});
+    } else {
+      navigator.clipboard?.writeText(url);
+      toast({ title: "Link copied!", description: "Deal link copied to clipboard." });
+    }
+  };
 
   const handleBook = (e: React.FormEvent) => {
     e.preventDefault();
@@ -225,7 +236,7 @@ export default function DealDetail() {
       </div>
 
       <div className="container relative -mt-16 z-20 space-y-6">
-        <div className="flex flex-wrap gap-2 mb-2">
+        <div className="flex flex-wrap gap-2 mb-2 items-center">
           <Badge variant="destructive" className="text-lg px-3 py-1">-{deal.discountPercent}%</Badge>
           <Badge
             variant="secondary"
@@ -233,11 +244,19 @@ export default function DealDetail() {
           >
             <Clock className="h-4 w-4" /> {formatTimeLeft(timeLeft)} left
           </Badge>
+          <button
+            type="button"
+            onClick={handleShareDeal}
+            className="ml-auto p-2 rounded-full bg-background/80 hover:bg-background border shadow-sm transition-colors"
+            title="Share this deal"
+          >
+            <Share2 className="h-4 w-4" />
+          </button>
         </div>
 
         <div>
           <div className="flex items-center gap-2 text-primary font-medium mb-1">
-            <span>{deal.venue?.name}</span>
+            <Link href={`/venues/${deal.venueId}`} className="hover:underline underline-offset-4">{deal.venue?.name}</Link>
             {deal.venue?.averageRating && Number(deal.venue.averageRating) > 0 && (
               <span className="flex items-center text-muted-foreground text-sm">
                 <Star className="h-3 w-3 fill-primary text-primary mr-1" />
@@ -253,6 +272,14 @@ export default function DealDetail() {
             <span className="capitalize">{deal.category}</span>
           </div>
         </div>
+
+        {isUrgent && timeLeft > 0 && (
+          <div className={`flex items-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold border ${availableSlots <= 2 ? "bg-destructive/10 border-destructive/30 text-destructive" : "bg-amber-500/10 border-amber-500/30 text-amber-700 dark:text-amber-400"}`}>
+            {availableSlots <= 2
+              ? <><Zap className="h-4 w-4 shrink-0 animate-pulse" /> Only {availableSlots} slot{availableSlots !== 1 ? "s" : ""} left — book now!</>
+              : <><Flame className="h-4 w-4 shrink-0" /> Ending in {formatTimeLeft(timeLeft)} — don't miss out!</>}
+          </div>
+        )}
 
         <Card>
           <CardContent className="p-6">

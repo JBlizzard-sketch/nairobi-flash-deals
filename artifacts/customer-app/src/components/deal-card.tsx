@@ -3,7 +3,7 @@ import { differenceInSeconds, formatDistanceToNowStrict } from "date-fns";
 import { Deal } from "@workspace/api-client-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Clock, Users, Flame } from "lucide-react";
+import { MapPin, Clock, Users, Flame, Share2 } from "lucide-react";
 import { Link } from "wouter";
 import { cn } from "@/lib/utils";
 
@@ -96,7 +96,7 @@ export function DealCard({ deal, featured = false, isTrending = false }: DealCar
             <div className="text-sm text-muted-foreground line-through">KES {parseInt(deal.originalPrice).toLocaleString()}</div>
           </div>
           
-          <div className="flex flex-col items-end">
+          <div className="flex flex-col items-end gap-1">
             <div className="flex items-center gap-1 text-sm font-medium">
               <Users className="h-4 w-4 text-muted-foreground" />
               <span className={deal.availableSlots <= 2 ? "text-destructive font-bold" : ""}>
@@ -104,6 +104,23 @@ export function DealCard({ deal, featured = false, isTrending = false }: DealCar
               </span>
             </div>
             <div className="text-xs text-muted-foreground">of {deal.totalSlots} total</div>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const url = `${window.location.origin}/deals/${deal.id}`;
+                if (navigator.share) {
+                  navigator.share({ title: deal.title, text: `${deal.title} — KES ${parseInt(deal.dealPrice).toLocaleString()} (${deal.discountPercent}% off) at ${deal.venue?.name ?? ""}`, url }).catch(() => {});
+                } else {
+                  navigator.clipboard?.writeText(url);
+                }
+              }}
+              className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors mt-1"
+              title="Share deal"
+            >
+              <Share2 className="h-3.5 w-3.5" /> Share
+            </button>
           </div>
         </CardContent>
       </Card>

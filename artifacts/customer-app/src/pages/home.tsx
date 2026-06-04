@@ -1,4 +1,6 @@
 import { useState, useDeferredValue } from "react";
+import { useAuth } from "@/hooks/use-auth";
+import { useLocation } from "wouter";
 import { useListDeals, useGetTrendingDeals } from "@workspace/api-client-react";
 import { DealCard } from "@/components/deal-card";
 import { DealCategory, VenueNeighborhood } from "@workspace/api-client-react";
@@ -6,9 +8,29 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AlertCircle, Search, X, Flame } from "lucide-react";
+import { AlertCircle, Search, X, Flame, Navigation, Loader2 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+
+const NEIGHBORHOOD_CENTROIDS: Record<string, [number, number]> = {
+  westlands:  [-1.2668, 36.8029],
+  kilimani:   [-1.2921, 36.7878],
+  cbd:        [-1.2864, 36.8172],
+  karen:      [-1.3332, 36.6833],
+  langata:    [-1.3147, 36.7489],
+  lavington:  [-1.2841, 36.7771],
+  kileleshwa: [-1.2822, 36.7873],
+  gigiri:     [-1.2308, 36.8024],
+  upper_hill: [-1.2987, 36.8189],
+};
+
+function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number) {
+  const R = 6371;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLng = ((lng2 - lng1) * Math.PI) / 180;
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
 
 const CATEGORIES = [
   { id: "all", label: "All Deals" },
@@ -47,6 +69,10 @@ export default function Home() {
   const [activeCategory, setActiveCategory] = useState<string>("all");
   const [activeNeighborhood, setActiveNeighborhood] = useState<string>("all");
   const [activePriceRange, setActivePriceRange] = useState<string>("any");
+  const [nearMeLoading, setNearMeLoading] = useState(false);
+  const [nearMeActive, setNearMeActive] = useState(false);
+  const { isAuthenticated } = useAuth();
+  const [, setLocation] = useLocation();
   const { data: trendingData } = useGetTrendingDeals();
 
   const deferredSearch = useDeferredValue(searchInput);
@@ -58,6 +84,31 @@ export default function Home() {
     activePriceRange !== "any",
     deferredSearch.length > 0,
   ].filter(Boolean).length;
+
+  function handleNearMe() {
+    if (nearMeActive) {
+      setNearMeActive(false);
+      setActiveNeighborhood("all");
+      return;
+    }
+    if (!navigator.geolocation) return;
+    setNearMeLoading(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const { latitude: lat, longitude: lng } = pos.coords;
+        let closest = "all";
+        let minDist = Infinity;
+        for (const [hood, [hLat, hLng]] of Object.entries(NEIGHBORHOOD_CENTROIDS)) {
+          const d = haversineKm(lat, lng, hLat, hLng);
+          if (d < minDist) { minDist = d; closest = hood; }
+        }
+        setActiveNeighborhood(closest);
+        setNearMeActive(true);
+        setNearMeLoading(false);
+      },
+      () => setNearMeLoading(false)
+    );
+  }
 
   const { data, isLoading, error } = useListDeals({
     search: deferredSearch || undefined,
@@ -75,28 +126,43 @@ export default function Home() {
     setActiveCategory("all");
     setActiveNeighborhood("all");
     setActivePriceRange("any");
+    setNearMeActive(false);
   }
 
   return (
     <div className="flex flex-col min-h-screen pb-20 md:pb-0">
       <div className="bg-background/95 backdrop-blur border-b sticky top-14 z-40 space-y-0">
         <div className="container py-3">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              placeholder="Search deals, venues…"
-              className="pl-9 pr-9 rounded-full bg-muted/60 border-0 focus-visible:ring-1"
-            />
-            {searchInput && (
-              <button
-                onClick={() => setSearchInput("")}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            )}
+          <div className="flex gap-2 items-center">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                placeholder="Search deals, venues…"
+                className="pl-9 pr-9 rounded-full bg-muted/60 border-0 focus-visible:ring-1"
+              />
+              {searchInput && (
+                <button
+                  onClick={() => setSearchInput("")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+            <Button
+              variant={nearMeActive ? "default" : "outline"}
+              size="sm"
+              className="rounded-full gap-1.5 shrink-0"
+              onClick={handleNearMe}
+              disabled={nearMeLoading}
+            >
+              {nearMeLoading
+                ? <Loader2 className="h-4 w-4 animate-spin" />
+                : <Navigation className="h-4 w-4" />}
+              <span className="hidden sm:inline">Near Me</span>
+            </Button>
           </div>
         </div>
 
