@@ -14,7 +14,7 @@ import path from "path";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PUSH_SCRIPT = path.resolve(__dirname, "../../scripts/github-push.sh");
-const INTERVAL_MS = 30 * 60 * 1000; // 30 minutes
+const INTERVAL_MS = 10 * 60 * 1000; // 10 minutes
 
 function runPush() {
   const ts = new Date().toUTCString();
@@ -32,7 +32,7 @@ function runPush() {
 }
 
 console.log("GitHub auto-scheduler started.");
-console.log(`Schedule: every ${INTERVAL_MS / 60000} minutes`);
+console.log(`Schedule: every ${INTERVAL_MS / 60_000} minutes`);
 console.log(`Script:   ${PUSH_SCRIPT}`);
 
 // Run immediately on start, then every 30 minutes
