@@ -1,6 +1,7 @@
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { User, LayoutDashboard, ShieldCheck } from "lucide-react";
+import { NotificationBell } from "@/components/notification-bell";
 
 export function Header() {
   const [location] = useLocation();
@@ -41,6 +42,7 @@ export function Header() {
                   <LayoutDashboard className="h-5 w-5 sm:hidden" />
                 </Link>
               )}
+              <NotificationBell />
               <Link href="/profile" className="text-muted-foreground hover:text-foreground">
                 <User className="h-5 w-5" />
                 <span className="sr-only">Profile</span>

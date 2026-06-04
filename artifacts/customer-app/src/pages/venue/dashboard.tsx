@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { TrendingUp, Users, Ticket, Plus, Clock, BarChart3, ArrowRight } from "lucide-react";
+import { TrendingUp, Users, Ticket, Plus, Clock, BarChart3, ArrowRight, ScanLine } from "lucide-react";
 import { differenceInSeconds, format } from "date-fns";
 import { useState, useEffect } from "react";
 
@@ -67,9 +67,14 @@ export default function VenueDashboard() {
           <h1 className="text-2xl font-bold tracking-tight">{venue?.name ?? "My Venue"}</h1>
           <p className="text-muted-foreground text-sm capitalize">{venue?.neighborhood?.replace(/_/g, " ")} · {venue?.category}</p>
         </div>
-        <Button onClick={() => setLocation("/venue/post-deal")}>
-          <Plus className="h-4 w-4 mr-2" /> Post Deal
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={() => setLocation("/venue/checkin")}>
+            <ScanLine className="h-4 w-4 mr-1.5" /> Check In
+          </Button>
+          <Button onClick={() => setLocation("/venue/post-deal")}>
+            <Plus className="h-4 w-4 mr-2" /> Post Deal
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-3">

@@ -6,7 +6,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Ticket, MapPin, Calendar, Clock, Star, Bell, BellOff, ChevronRight } from "lucide-react";
+import { Ticket, MapPin, Calendar, Clock, Star, Bell, BellOff, ChevronRight, QrCode } from "lucide-react";
+import { QRCodeSVG } from "qrcode.react";
 import { format } from "date-fns";
 import {
   Dialog,
@@ -81,6 +82,7 @@ export default function Bookings() {
   const [score, setScore] = useState(5);
   const [comment, setComment] = useState("");
   const [ratedIds, setRatedIds] = useState<Set<number>>(new Set());
+  const [qrBookingId, setQrBookingId] = useState<number | null>(null);
 
   if (authLoading) return null;
   if (!isAuthenticated) return <Redirect to="/auth" />;
@@ -181,12 +183,21 @@ export default function Bookings() {
                         {booking.confirmationCode}
                       </span>
                     </div>
-                    <Badge
-                      variant={STATUS_VARIANTS[booking.status] ?? "outline"}
-                      className="uppercase text-[10px] shrink-0"
-                    >
-                      {STATUS_LABELS[booking.status] ?? booking.status}
-                    </Badge>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <button
+                        className="text-muted-foreground hover:text-primary transition-colors p-0.5"
+                        onClick={() => setQrBookingId(booking.id)}
+                        title="Show QR code"
+                      >
+                        <QrCode className="h-4 w-4" />
+                      </button>
+                      <Badge
+                        variant={STATUS_VARIANTS[booking.status] ?? "outline"}
+                        className="uppercase text-[10px]"
+                      >
+                        {STATUS_LABELS[booking.status] ?? booking.status}
+                      </Badge>
+                    </div>
                   </div>
                   <CardContent className="p-4 space-y-3">
                     <div>
@@ -325,6 +336,30 @@ export default function Bookings() {
           </div>
         )
       )}
+
+      {/* QR Code Dialog */}
+      <Dialog open={qrBookingId !== null} onOpenChange={(open) => !open && setQrBookingId(null)}>
+        <DialogContent className="sm:max-w-xs">
+          <DialogHeader>
+            <DialogTitle>Booking QR Code</DialogTitle>
+            <DialogDescription>Show this to staff at the venue to check in.</DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col items-center gap-4 py-2">
+            {qrBookingId !== null && (() => {
+              const booking = data?.data.find((b) => b.id === qrBookingId);
+              return booking ? (
+                <>
+                  <div className="rounded-xl border-2 border-primary/20 p-3 bg-white">
+                    <QRCodeSVG value={booking.confirmationCode} size={180} includeMargin={false} />
+                  </div>
+                  <p className="font-mono text-2xl font-bold tracking-widest text-primary">{booking.confirmationCode}</p>
+                  <p className="text-xs text-muted-foreground text-center">{booking.deal?.title} · {booking.venue?.name}</p>
+                </>
+              ) : null;
+            })()}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={!!ratingTarget} onOpenChange={(open) => !open && setRatingTarget(null)}>
         <DialogContent className="sm:max-w-md">

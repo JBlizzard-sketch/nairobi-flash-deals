@@ -270,6 +270,65 @@ router.post("/bookings/:id/cancel", async (req, res) => {
   res.json({ ...booking, deal: null, venue: null });
 });
 
+// ── POST /api/bookings/checkin-by-code ──────────────────────────
+router.post("/bookings/checkin-by-code", async (req, res) => {
+  const { confirmationCode } = req.body as { confirmationCode?: string };
+  if (!confirmationCode) {
+    res.status(400).json({ message: "confirmationCode is required" });
+    return;
+  }
+  const [row] = await db
+    .select({
+      booking: bookingsTable,
+      dealTitle: dealsTable.title,
+      venueName: venuesTable.name,
+      guestName: usersTable.name,
+      guestPhone: usersTable.phone,
+    })
+    .from(bookingsTable)
+    .leftJoin(dealsTable, eq(bookingsTable.dealId, dealsTable.id))
+    .leftJoin(venuesTable, eq(bookingsTable.venueId, venuesTable.id))
+    .leftJoin(usersTable, eq(bookingsTable.userId, usersTable.id))
+    .where(eq(bookingsTable.confirmationCode, confirmationCode.toUpperCase()));
+
+  if (!row) {
+    res.status(404).json({ message: "Booking not found — check the code and try again." });
+    return;
+  }
+  if (!["confirmed", "pending_payment"].includes(row.booking.status)) {
+    res.status(409).json({
+      message:
+        row.booking.status === "checked_in"
+          ? "This booking has already been checked in."
+          : `Cannot check in a booking with status: ${row.booking.status}`,
+    });
+    return;
+  }
+
+  const [updated] = await db
+    .update(bookingsTable)
+    .set({ status: "checked_in", checkedInAt: new Date(), updatedAt: new Date() })
+    .where(eq(bookingsTable.id, row.booking.id))
+    .returning();
+
+  if (updated.userId) {
+    await awardLoyaltyPoints(updated.userId, 25);
+  }
+
+  res.json({
+    booking: {
+      id: updated.id,
+      confirmationCode: updated.confirmationCode,
+      guestName: row.guestName,
+      guestPhone: row.guestPhone ?? "",
+      partySize: updated.slots,
+      dealTitle: row.dealTitle ?? "",
+      venueName: row.venueName ?? "",
+      status: updated.status,
+    },
+  });
+});
+
 router.post("/bookings/:id/checkin", async (req, res) => {
   const id = Number(req.params.id);
   const [booking] = await db
